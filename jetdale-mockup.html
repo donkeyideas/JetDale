@@ -1,0 +1,3840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jetdale — The AI Project Architect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Manrope:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0E0F0C;
+  --paper: #F4F1EA;
+  --paper-2: #EAE5D9;
+  --paper-3: #DDD6C5;
+  --rule: #2A2B26;
+  --accent: #FF5B1F;
+  --accent-2: #E84A0F;
+  --moss: #2E4A2C;
+  --gold: #C9A227;
+  --muted: #6B6B62;
+  --shadow: 0 1px 0 rgba(14,15,12,.06), 0 8px 24px rgba(14,15,12,.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Manrope', -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(255,91,31,.04), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(46,74,44,.05), transparent 40%);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: .35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+h1, h2, h3, h4, .display {
+  font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+
+.mono { font-family: 'Space Mono', monospace; }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea { font-family: inherit; }
+
+/* ---------- NAV ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(244,241,234,.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.logo {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -.04em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--ink);
+  position: relative;
+  border-radius: 2px;
+}
+.logo-mark::before, .logo-mark::after {
+  content: '';
+  position: absolute;
+  background: var(--accent);
+}
+.logo-mark::before { top: 6px; left: 6px; width: 16px; height: 2px; }
+.logo-mark::after { top: 10px; left: 6px; width: 10px; height: 2px; }
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--muted);
+  transition: all .2s;
+  letter-spacing: -.01em;
+}
+
+.nav-tab:hover { color: var(--ink); }
+
+.nav-tab.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.nav-cta {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+  transition: transform .15s;
+}
+.nav-cta:hover { transform: translateY(-1px); }
+
+/* ---------- VIEWS ---------- */
+.view { display: none; position: relative; z-index: 2; }
+.view.active { display: block; }
+
+/* ============== LANDING ============== */
+.hero {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 80px 32px 60px;
+  position: relative;
+}
+
+.hero-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero-title {
+  font-size: clamp(56px, 9vw, 128px);
+  line-height: .92;
+  font-weight: 600;
+  letter-spacing: -.045em;
+  max-width: 1200px;
+}
+
+.hero-title .light {
+  font-weight: 300;
+  color: var(--accent);
+}
+
+.hero-title .underline {
+  position: relative;
+  display: inline-block;
+}
+.hero-title .underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 8px;
+  background: var(--gold);
+  z-index: -1;
+  opacity: .45;
+}
+
+.hero-meta {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 48px;
+  margin-top: 80px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule);
+}
+
+.hero-lead {
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--ink);
+  max-width: 520px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-stat-num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+
+.hero-stat-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 16px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 18px 32px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  transition: all .2s;
+}
+.btn-primary:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+.btn-primary .arrow {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  transition: background .2s;
+}
+.btn-primary:hover .arrow { background: var(--paper); color: var(--ink); }
+
+.btn-ghost {
+  padding: 18px 28px;
+  font-weight: 600;
+  font-size: 15px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  transition: all .2s;
+}
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+
+/* Marquee */
+.marquee {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 0;
+  overflow: hidden;
+  margin-top: 80px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.marquee-track {
+  display: flex;
+  gap: 64px;
+  white-space: nowrap;
+  animation: scroll 40s linear infinite;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+
+.marquee-track span { display: inline-flex; align-items: center; gap: 64px; }
+.marquee-track .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+
+@keyframes scroll {
+  to { transform: translateX(-50%); }
+}
+
+.section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 120px 32px;
+}
+
+.section-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.problem-title {
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1;
+}
+
+.problem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+.problem-item {
+  background: var(--paper);
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  transition: background .2s;
+}
+.problem-item:hover { background: var(--paper-2); }
+
+.problem-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.problem-text {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.problem-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.flow {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 120px 0;
+  position: relative;
+}
+.flow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(255,91,31,.08), transparent 50%);
+}
+
+.flow-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+}
+
+.flow-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  margin-bottom: 80px;
+}
+
+.flow-title {
+  font-size: clamp(48px, 6vw, 80px);
+  color: var(--paper);
+}
+
+.flow-title em { color: var(--accent); font-style: normal; font-weight: 300; }
+
+.flow-sub {
+  align-self: end;
+  color: var(--paper-3);
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 440px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px;
+}
+
+.step {
+  border: 1px solid rgba(244,241,234,.15);
+  padding: 24px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 220px;
+  transition: all .3s;
+  cursor: pointer;
+  background: rgba(244,241,234,.02);
+}
+
+.step:hover {
+  background: rgba(255,91,31,.08);
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.step-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  color: var(--accent);
+}
+
+.step-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+  line-height: 1;
+  flex: 1;
+}
+
+.step-meta {
+  font-size: 12px;
+  color: var(--paper-3);
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(244,241,234,.15);
+}
+
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 60px 32px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.footer-brand {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 96px;
+  line-height: .9;
+  letter-spacing: -.05em;
+  font-weight: 700;
+}
+
+.footer-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .1em;
+  text-align: right;
+  line-height: 1.8;
+}
+
+/* ============== INTRO / QUESTIONNAIRE ============== */
+.intro {
+  min-height: calc(100vh - 73px);
+  display: flex;
+  flex-direction: column;
+}
+
+.intro-progress {
+  border-bottom: 1px solid var(--rule);
+  padding: 16px 32px;
+  background: var(--paper);
+}
+
+.intro-progress-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.intro-step-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.intro-step-label .num { color: var(--ink); font-weight: 700; }
+
+.intro-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.intro-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+
+.intro-percent {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--accent);
+}
+
+.intro-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+
+.intro-card {
+  max-width: 780px;
+  width: 100%;
+}
+
+.intro-stage {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.intro-stage::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.intro-question {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+
+.intro-helper {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 36px;
+  max-width: 580px;
+}
+
+.intro-input-wrap {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.intro-textarea {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 24px 80px 24px 24px;
+  font-size: 18px;
+  line-height: 1.5;
+  min-height: 140px;
+  resize: vertical;
+  outline: none;
+  font-weight: 400;
+  transition: border-color .2s, box-shadow .2s;
+}
+.intro-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(255,91,31,.12);
+}
+
+.intro-mic {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  transition: all .2s;
+}
+.intro-mic:hover { background: var(--accent); transform: scale(1.05); }
+.intro-mic.recording {
+  background: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,91,31,.4); }
+  50% { box-shadow: 0 0 0 14px rgba(255,91,31,0); }
+}
+
+.intro-mic-icon {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  position: relative;
+}
+.intro-mic-icon::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 5px;
+  border: 2px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+
+.intro-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.intro-option {
+  padding: 20px 24px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.intro-option:hover {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-2px);
+}
+.intro-option.selected {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.intro-option .check {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: .4;
+  flex-shrink: 0;
+}
+.intro-option.selected .check {
+  background: var(--accent);
+  border-color: var(--accent);
+  opacity: 1;
+  position: relative;
+}
+.intro-option.selected .check::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: white;
+  border-radius: 50%;
+}
+
+.intro-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.intro-back {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color .15s;
+}
+.intro-back:hover { color: var(--ink); }
+
+.intro-next {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 16px 28px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  transition: all .2s;
+}
+.intro-next:hover { background: var(--accent); transform: translateY(-2px); }
+.intro-next .arrow {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  transition: background .2s;
+}
+.intro-next:hover .arrow { background: var(--paper); color: var(--ink); }
+
+.intro-hint {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--paper-3);
+}
+
+.intro-hint kbd {
+  background: var(--paper-2);
+  border: 1px solid var(--paper-3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 10px;
+  color: var(--ink);
+  margin: 0 4px;
+}
+
+.intro-ai-hint {
+  background: var(--paper-2);
+  border: 1px solid var(--paper-3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+
+.intro-ai-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--ink);
+  color: var(--accent);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.intro-ai-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.intro-ai-text .ai-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ============== DASHBOARD ============== */
+.dash {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 48px 32px;
+}
+
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.dash-greeting {
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1;
+}
+.dash-greeting .light { font-weight: 300; color: var(--accent); }
+
+.dash-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+.dash-new {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 24px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all .2s;
+}
+.dash-new:hover { background: var(--accent); transform: translateY(-2px); }
+.dash-new .plus {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.dash-new:hover .plus { background: var(--paper); color: var(--ink); }
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+
+.dash-stat {
+  background: var(--paper);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-stat-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-stat-num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+
+.dash-stat-change {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--moss);
+}
+.dash-stat-change.warn { color: var(--accent-2); }
+
+.dash-section-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.dash-section-title .count {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+
+.project {
+  background: var(--paper);
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1fr 1.2fr 80px;
+  align-items: center;
+  gap: 24px;
+  transition: background .2s;
+  cursor: pointer;
+}
+.project:hover { background: var(--paper-2); }
+
+.project-name {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+}
+
+.project-name .industry {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 6px;
+  letter-spacing: .12em;
+}
+
+.project-phase {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.project-phase .label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.project-next {
+  font-size: 13px;
+  color: var(--muted);
+}
+.project-next strong { color: var(--ink); font-weight: 500; display: block; margin-bottom: 4px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+
+.project-arrow {
+  font-size: 24px;
+  text-align: right;
+  color: var(--muted);
+  transition: all .2s;
+}
+.project:hover .project-arrow { color: var(--accent); transform: translateX(4px); }
+
+/* Insights row */
+.insights-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.insight-card {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 32px;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.insight-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,91,31,.15), transparent 60%);
+}
+
+.insight-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  position: relative;
+  z-index: 2;
+}
+
+.insight-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  margin: 16px 0 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.insight-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--paper-3);
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.insight-action {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-card {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  padding: 28px;
+  border-radius: 6px;
+}
+
+.quick-card h4 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  letter-spacing: -.02em;
+}
+
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--paper-3);
+}
+.quick-item:last-child { border: none; }
+.quick-item .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.quick-item .dot.moss { background: var(--moss); }
+.quick-item .dot.gold { background: var(--gold); }
+
+/* ============== WORKSPACE ============== */
+.workspace {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.ws-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--rule);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ws-breadcrumb {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.ws-title {
+  font-size: clamp(32px, 4vw, 48px);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 600;
+  letter-spacing: -.035em;
+}
+
+.ws-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ws-btn {
+  padding: 10px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--paper);
+  transition: all .2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.ws-btn:hover { background: var(--ink); color: var(--paper); }
+.ws-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.ws-btn.primary:hover { background: var(--accent-2); }
+
+.ws-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr 360px;
+  gap: 24px;
+  min-height: 700px;
+}
+
+.ws-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ws-side-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 12px 8px;
+}
+
+.ws-side-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background .15s;
+  cursor: pointer;
+  font-weight: 600;
+}
+.ws-side-item:hover { background: var(--paper-2); }
+.ws-side-item.active { background: var(--ink); color: var(--paper); }
+
+.ws-side-item .badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  background: var(--paper-3);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.ws-side-item.active .badge { background: var(--accent); color: white; }
+
+.artifact {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 40px 48px;
+  overflow-y: auto;
+}
+
+.artifact-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--paper-3);
+  margin-bottom: 32px;
+}
+
+.artifact-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.artifact-version {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.artifact h2 {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.artifact .sub {
+  font-weight: 400;
+  color: var(--muted);
+  font-family: 'Manrope', sans-serif;
+  font-size: 18px;
+  margin-bottom: 32px;
+}
+
+.artifact h3 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  margin-top: 36px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.artifact h3::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.artifact p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin-bottom: 16px;
+  color: #1a1b18;
+}
+
+.artifact ul {
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.artifact ul li {
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: 24px;
+  position: relative;
+  margin-bottom: 10px;
+}
+.artifact ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 12px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.pull-quote {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+  padding: 32px;
+  background: var(--paper-2);
+  border-left: 3px solid var(--accent);
+  margin: 32px 0;
+  letter-spacing: -.025em;
+}
+
+.persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.persona {
+  border: 1px solid var(--rule);
+  padding: 20px;
+  border-radius: 4px;
+  background: var(--paper);
+}
+
+.persona-name {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  margin-bottom: 4px;
+}
+
+.persona-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.persona-row {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 8px;
+  color: #1a1b18;
+}
+.persona-row strong { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; font-weight: 500; }
+
+.chat {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(244,241,234,.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: white;
+}
+
+.chat-id .name { font-weight: 600; font-size: 14px; }
+.chat-id .role { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--paper-3); letter-spacing: .1em; text-transform: uppercase; }
+
+.chat-body {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  font-size: 13px;
+  max-height: 500px;
+}
+
+.msg {
+  max-width: 88%;
+  line-height: 1.5;
+}
+
+.msg.ai {
+  background: rgba(244,241,234,.06);
+  padding: 14px 16px;
+  border-radius: 14px 14px 14px 4px;
+  border-left: 2px solid var(--accent);
+}
+
+.msg.you {
+  background: var(--accent);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 14px 14px 4px 14px;
+  margin-left: auto;
+}
+
+.msg .label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--paper-3);
+  margin-bottom: 6px;
+  display: block;
+  font-weight: 700;
+}
+
+.msg.you .label { color: rgba(255,255,255,.7); }
+
+.msg.warning {
+  background: rgba(255,91,31,.12);
+  border-left: 2px solid var(--accent);
+  padding: 14px 16px;
+  border-radius: 14px 14px 14px 4px;
+}
+.msg.warning .label { color: var(--accent); }
+
+.chat-input {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(244,241,234,.1);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-input input {
+  flex: 1;
+  background: rgba(244,241,234,.08);
+  border: 1px solid rgba(244,241,234,.15);
+  color: var(--paper);
+  padding: 11px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.chat-input input::placeholder { color: var(--paper-3); }
+.chat-input input:focus { border-color: var(--accent); }
+
+.chat-mic, .chat-send {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+.chat-mic {
+  background: rgba(244,241,234,.08);
+  color: var(--paper);
+}
+.chat-mic:hover { background: rgba(244,241,234,.15); }
+.chat-send {
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+}
+.chat-send:hover { transform: scale(1.08); }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .ws-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .hero-meta { grid-template-columns: 1fr; }
+  .problem-grid, .flow-header { grid-template-columns: 1fr; }
+  .dash-stats { grid-template-columns: repeat(2, 1fr); }
+  .project { grid-template-columns: 1fr; gap: 12px; }
+  .insights-row { grid-template-columns: 1fr; }
+  .intro-options { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .nav-inner { padding: 14px 18px; gap: 12px; }
+  .nav-tabs { display: none; }
+  .nav-cta { padding: 8px 14px; font-size: 12px; }
+}
+
+/* ============== ADMIN DASHBOARD ============== */
+.admin {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 73px);
+}
+
+.admin-side {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 32px 20px;
+  border-right: 1px solid var(--rule);
+  position: sticky;
+  top: 73px;
+  height: calc(100vh - 73px);
+  overflow-y: auto;
+}
+
+.admin-side-brand {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-side-brand::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,91,31,.3);
+}
+
+.admin-side-section {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(244,241,234,.4);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  padding: 0 12px;
+}
+
+.admin-side-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all .15s;
+  color: rgba(244,241,234,.7);
+  margin-bottom: 2px;
+}
+.admin-side-item:hover {
+  background: rgba(244,241,234,.06);
+  color: var(--paper);
+}
+.admin-side-item.active {
+  background: rgba(255,91,31,.15);
+  color: var(--accent);
+  font-weight: 700;
+}
+.admin-side-item .pill {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  background: rgba(255,91,31,.2);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.admin-side-user {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(244,241,234,.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+.admin-side-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+.admin-side-user-name { font-size: 13px; font-weight: 600; color: var(--paper); }
+.admin-side-user-role {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(244,241,234,.5);
+}
+
+.admin-main {
+  padding: 32px;
+  overflow-x: hidden;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+.admin-title .live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(46,74,44,.1);
+  border: 1px solid var(--moss);
+  color: var(--moss);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-left: 16px;
+  vertical-align: middle;
+}
+.admin-title .live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--moss);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+.admin-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-control {
+  padding: 10px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--paper);
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-control:hover { background: var(--ink); color: var(--paper); }
+.admin-control.active { background: var(--ink); color: var(--paper); }
+.admin-control.primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+.admin-control-group {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.admin-control-group .admin-control {
+  border: none;
+  border-radius: 0;
+  border-right: 1px solid var(--rule);
+}
+.admin-control-group .admin-control:last-child { border-right: none; }
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.kpi-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s;
+}
+.kpi-card:hover { transform: translateY(-2px); }
+
+.kpi-card.featured {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.kpi-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kpi-card.featured .kpi-label { color: rgba(244,241,234,.6); }
+
+.kpi-label .info {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  opacity: .5;
+  cursor: help;
+}
+
+.kpi-value {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.kpi-value .currency {
+  font-size: 20px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.kpi-card.featured .kpi-value .currency { color: rgba(244,241,234,.6); }
+
+.kpi-change {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kpi-change.up { color: var(--moss); }
+.kpi-change.down { color: var(--accent-2); }
+.kpi-change .vs {
+  color: var(--muted);
+  font-weight: 400;
+}
+.kpi-card.featured .kpi-change.up { color: #7FB87C; }
+.kpi-card.featured .kpi-change .vs { color: rgba(244,241,234,.5); }
+
+.kpi-sparkline {
+  margin-top: 14px;
+  height: 32px;
+  width: 100%;
+}
+
+/* Chart row */
+.chart-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.chart-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-card-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+.chart-card-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chart-svg {
+  width: 100%;
+  height: 280px;
+}
+
+/* Cohort retention table */
+.cohort-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cohort-table th {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+.cohort-table td {
+  padding: 10px 6px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+  border-bottom: 1px solid var(--paper-3);
+}
+.cohort-table td:first-child {
+  text-align: left;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+}
+.cohort-cell {
+  display: block;
+  padding: 6px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Funnel */
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.funnel-row {
+  display: grid;
+  grid-template-columns: 1fr 60px;
+  gap: 12px;
+  align-items: center;
+}
+
+.funnel-bar-wrap {
+  position: relative;
+  background: var(--paper-2);
+  border-radius: 6px;
+  height: 38px;
+  overflow: hidden;
+}
+
+.funnel-bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+}
+.funnel-bar .funnel-label {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+.funnel-bar .funnel-num {
+  margin-left: auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.funnel-pct {
+  text-align: right;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.funnel-pct.drop {
+  color: var(--accent-2);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+/* User table */
+.users-section {
+  margin-top: 8px;
+}
+
+.users-table-wrap {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.users-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 400px;
+}
+
+.users-search input {
+  flex: 1;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--paper);
+  outline: none;
+  transition: border-color .15s;
+}
+.users-search input:focus { border-color: var(--accent); }
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.users-table th {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.users-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--paper-3);
+  vertical-align: middle;
+}
+.users-table tr:last-child td { border-bottom: none; }
+.users-table tbody tr { transition: background .15s; cursor: pointer; }
+.users-table tbody tr:hover { background: var(--paper-2); }
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--paper-3);
+  display: grid;
+  place-items: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.user-avatar.accent { background: var(--accent); color: white; }
+.user-avatar.moss { background: var(--moss); color: var(--paper); }
+.user-avatar.gold { background: var(--gold); color: var(--ink); }
+.user-avatar.ink { background: var(--ink); color: var(--paper); }
+
+.user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.user-name { font-weight: 600; font-size: 13px; }
+.user-email { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tag.pro { background: var(--ink); color: var(--accent); }
+.tag.team { background: var(--accent); color: white; }
+.tag.free { background: var(--paper-3); color: var(--muted); }
+.tag.trial { background: var(--gold); color: var(--ink); }
+.tag.churn { background: rgba(232,74,15,.12); color: var(--accent-2); }
+.tag.active { background: rgba(46,74,44,.12); color: var(--moss); }
+
+.mini-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.mini-bar > div {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* Operational health */
+.health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.health-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.health-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.health-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.health-dot.green { background: var(--moss); box-shadow: 0 0 0 4px rgba(46,74,44,.15); }
+.health-dot.yellow { background: var(--gold); box-shadow: 0 0 0 4px rgba(201,162,39,.15); }
+.health-dot.red { background: var(--accent-2); box-shadow: 0 0 0 4px rgba(232,74,15,.15); }
+.health-name { font-weight: 600; font-size: 14px; }
+
+.health-metric {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  margin-bottom: 4px;
+}
+
+.health-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: .08em;
+}
+
+/* Bottom grid */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.archetype-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.archetype-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--paper-3);
+}
+.archetype-row:last-child { border: none; }
+
+.archetype-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.archetype-name .arc-sub {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.archetype-bar-wrap {
+  width: 140px;
+  height: 6px;
+  background: var(--paper-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.archetype-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.archetype-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Activity feed */
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--paper-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.activity-item:last-child { border: none; }
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 6px;
+}
+.activity-dot.moss { background: var(--moss); }
+.activity-dot.gold { background: var(--gold); }
+.activity-dot.muted { background: var(--paper-3); }
+
+.activity-text strong { font-weight: 600; }
+.activity-text .activity-meta {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.activity-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .admin { grid-template-columns: 1fr; }
+  .admin-side {
+    position: relative;
+    top: 0;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .admin-side-section { margin: 0; padding: 0 8px; }
+  .admin-side-user { display: none; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-row, .health-grid, .bottom-grid { grid-template-columns: 1fr; }
+}
+
+
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      Jetdale
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="landing">Home</button>
+      <button class="nav-tab" data-view="intro">Discovery</button>
+      <button class="nav-tab" data-view="dashboard">Dashboard</button>
+      <button class="nav-tab" data-view="workspace">Workspace</button>
+      <button class="nav-tab" data-view="admin">Admin</button>
+    </div>
+    <button class="nav-cta" onclick="switchView('intro')">Start a Project</button>
+  </div>
+</nav>
+
+<!-- ============== LANDING ============== -->
+<div class="view active" id="landing">
+  <section class="hero">
+    <div class="hero-eyebrow">The AI Project Architect / v1.0</div>
+    <h1 class="hero-title">
+      Anyone can <span class="light">build</span> with AI.<br>
+      Almost no one can <span class="underline">plan</span> with it.
+    </h1>
+    <div class="hero-meta">
+      <p class="hero-lead">Jetdale turns a one-sentence idea into a world-class build plan — vision, scope, roadmap, mockups, risks, and AI-ready prompts. Ship the right thing, not the first thing.</p>
+      <div class="hero-stat">
+        <div class="hero-stat-num">47</div>
+        <div class="hero-stat-label">Industry Archetypes</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">12</div>
+        <div class="hero-stat-label">Artifacts Generated</div>
+      </div>
+    </div>
+    <div class="hero-ctas">
+      <button class="btn-primary" onclick="switchView('intro')">Start your project <span class="arrow">&rarr;</span></button>
+      <button class="btn-ghost">Watch the 90s demo</button>
+    </div>
+  </section>
+
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span></span>
+      <span>Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span> Plan before you build <span class="dot"></span></span>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="section-label">The Problem / 01</div>
+    <div class="problem-grid">
+      <h2 class="problem-title">Most projects fail before a single line is written.</h2>
+      <div class="problem-list">
+        <div class="problem-item">
+          <div class="problem-num">01</div>
+          <div class="problem-text">AI builds whatever you ask, even when what you asked is wrong.</div>
+          <div class="problem-tag">Scope drift</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">02</div>
+          <div class="problem-text">No vision document. No personas. No success metrics.</div>
+          <div class="problem-tag">Missing foundation</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">03</div>
+          <div class="problem-text">Generic PM tools are empty boards. They assume you already know.</div>
+          <div class="problem-tag">Blank canvas</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">04</div>
+          <div class="problem-text">No one tells you the timeline is delusional or the budget is half.</div>
+          <div class="problem-tag">No reality check</div>
+        </div>
+        <div class="problem-item">
+          <div class="problem-num">05</div>
+          <div class="problem-text">You hire a developer. They ask the questions you never answered.</div>
+          <div class="problem-tag">Costly handoff</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="flow">
+    <div class="flow-inner">
+      <div class="flow-header">
+        <h2 class="flow-title">From <em>idea</em> to <em>ready-to-build</em> in under an hour.</h2>
+        <p class="flow-sub">Seven steps. Every step produces an artifact you can show, share, or hand off. No empty templates. No blank pages. Just questions, answers, and the documents a world-class team would have written.</p>
+      </div>
+      <div class="steps">
+        <div class="step" onclick="switchView('intro')">
+          <div class="step-num">STEP 01</div>
+          <div class="step-title">Spark</div>
+          <div class="step-meta"><span>One sentence</span><span>2 min</span></div>
+        </div>
+        <div class="step" onclick="switchView('intro')">
+          <div class="step-num">STEP 02</div>
+          <div class="step-title">Discovery interview</div>
+          <div class="step-meta"><span>Adaptive Q&amp;A</span><span>20 min</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP 03</div>
+          <div class="step-title">Reality check</div>
+          <div class="step-meta"><span>AI pushback</span><span>5 min</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP 04</div>
+          <div class="step-title">Artifact suite</div>
+          <div class="step-meta"><span>12 documents</span><span>2 min</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP 05</div>
+          <div class="step-title">Refine</div>
+          <div class="step-meta"><span>Edit anything</span><span>Open</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP 06</div>
+          <div class="step-title">Build bridge</div>
+          <div class="step-meta"><span>Export to AI</span><span>1 click</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">STEP 07</div>
+          <div class="step-title">Living project</div>
+          <div class="step-meta"><span>Weekly sync</span><span>Ongoing</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">What you walk away with / 02</div>
+    <div class="problem-grid">
+      <h2 class="problem-title" style="color: var(--accent);">A package no $500/hr consultant would put together for under $20K.</h2>
+      <div class="problem-list">
+        <div class="problem-item"><div class="problem-num">A</div><div class="problem-text">Vision &amp; mission document</div><div class="problem-tag">3 pages</div></div>
+        <div class="problem-item"><div class="problem-num">B</div><div class="problem-text">Detailed scope with in/out boundaries</div><div class="problem-tag">5 pages</div></div>
+        <div class="problem-item"><div class="problem-num">C</div><div class="problem-text">User personas with jobs-to-be-done</div><div class="problem-tag">4 personas</div></div>
+        <div class="problem-item"><div class="problem-num">D</div><div class="problem-text">Phased roadmap with milestones</div><div class="problem-tag">12 months</div></div>
+        <div class="problem-item"><div class="problem-num">E</div><div class="problem-text">Wireframes and interaction flows</div><div class="problem-tag">Clickable</div></div>
+        <div class="problem-item"><div class="problem-num">F</div><div class="problem-text">Tech stack recommendations</div><div class="problem-tag">Vetted</div></div>
+        <div class="problem-item"><div class="problem-num">G</div><div class="problem-text">Risk register with mitigation plans</div><div class="problem-tag">Pre-mortem</div></div>
+        <div class="problem-item"><div class="problem-num">H</div><div class="problem-text">Success metrics and KPIs</div><div class="problem-tag">Tracked</div></div>
+        <div class="problem-item"><div class="problem-num">I</div><div class="problem-text">Build-ready prompts for Claude, Cursor, Lovable</div><div class="problem-tag">1-click export</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div>
+      <div class="footer-brand">Jetdale.</div>
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 16px; letter-spacing: .1em;">PLAN BEFORE YOU BUILD.</div>
+    </div>
+    <div class="footer-meta">
+      MOCKUP / V0.2<br>
+      MADE FOR DEMONSTRATION<br>
+      ALL ARTIFACTS GENERATED LIVE
+    </div>
+  </footer>
+</div>
+
+<!-- ============== INTRO / QUESTIONNAIRE ============== -->
+<div class="view" id="intro">
+  <div class="intro">
+    <div class="intro-progress">
+      <div class="intro-progress-inner">
+        <div class="intro-step-label">Discovery / Question <span class="num" id="q-current">3</span> of <span id="q-total">12</span></div>
+        <div class="intro-progress-bar">
+          <div class="intro-progress-fill" id="q-fill" style="width: 25%"></div>
+        </div>
+        <div class="intro-percent" id="q-percent">25%</div>
+      </div>
+    </div>
+
+    <div class="intro-body">
+      <div class="intro-card" id="q-card">
+
+        <!-- Question 1: Open-ended spark -->
+        <div class="q-screen" data-q="1" style="display:none;">
+          <div class="intro-stage">Stage 01 / The Spark</div>
+          <h2 class="intro-question">In one sentence, what are you building?</h2>
+          <p class="intro-helper">Don't overthink it. Just describe the thing. You can speak it instead of typing — we'll handle the rest.</p>
+
+          <div class="intro-input-wrap">
+            <textarea class="intro-textarea" id="q1-input" placeholder="I want to build an app that helps dog owners find sitters in their neighborhood..."></textarea>
+            <button class="intro-mic" id="q1-mic" onclick="toggleMic('q1-mic', 'q1-input')">
+              <div class="intro-mic-icon"></div>
+            </button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="switchView('landing')">&larr; Back to home</button>
+            <button class="intro-next" onclick="goToQ(2)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+
+          <div class="intro-hint">
+            Press <kbd>Enter</kbd> to continue, <kbd>Shift+Enter</kbd> for new line
+          </div>
+        </div>
+
+        <!-- Question 2: Archetype confirmation -->
+        <div class="q-screen" data-q="2" style="display:none;">
+          <div class="intro-stage">Stage 02 / Understanding</div>
+          <h2 class="intro-question">Sounds like a marketplace. Is that right?</h2>
+          <p class="intro-helper">I'm using this to tailor the questions to your project. Pick the closest match.</p>
+
+          <div class="intro-ai-hint">
+            <div class="intro-ai-avatar">B</div>
+            <div class="intro-ai-text">
+              <span class="ai-label">Jetdale AI</span>
+              Based on what you said, this looks like a two-sided marketplace (owners + sitters) with a local services angle. I'll lean into questions about supply, trust, and unit economics.
+            </div>
+          </div>
+
+          <div class="intro-options">
+            <button class="intro-option selected">Two-sided marketplace<span class="check"></span></button>
+            <button class="intro-option">SaaS / B2B software<span class="check"></span></button>
+            <button class="intro-option">Consumer mobile app<span class="check"></span></button>
+            <button class="intro-option">Local service business<span class="check"></span></button>
+            <button class="intro-option">Creator / digital product<span class="check"></span></button>
+            <button class="intro-option">Something else — let me describe<span class="check"></span></button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(1)">&larr; Back</button>
+            <button class="intro-next" onclick="goToQ(3)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+        </div>
+
+        <!-- Question 3: The pain (default visible) -->
+        <div class="q-screen" data-q="3">
+          <div class="intro-stage">Stage 03 / The Problem</div>
+          <h2 class="intro-question">Whose problem is this, and how badly does it hurt?</h2>
+          <p class="intro-helper">Tell me about the person who needs this most. What are they doing today instead? How angry, frustrated, or desperate are they? The sharper your answer, the better the plan.</p>
+
+          <div class="intro-input-wrap">
+            <textarea class="intro-textarea" placeholder="My friend Anna has cancelled three trips this year because she doesn't trust her dog with strangers. Boarding is $75/night and she still hates it. She'd happily pay $40-50/night to leave him with someone she actually knows..."></textarea>
+            <button class="intro-mic" id="q3-mic" onclick="toggleMicSimple('q3-mic')">
+              <div class="intro-mic-icon"></div>
+            </button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(2)">&larr; Back</button>
+            <button class="intro-next" onclick="goToQ(4)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+
+          <div class="intro-hint">
+            Tap the mic to dictate — works best for rambling, conversational answers
+          </div>
+        </div>
+
+        <!-- Question 4: Budget -->
+        <div class="q-screen" data-q="4" style="display:none;">
+          <div class="intro-stage">Stage 04 / Resources</div>
+          <h2 class="intro-question">What's your realistic budget to launch?</h2>
+          <p class="intro-helper">Be honest. I'll plan around what you actually have, not what you wish you had. I'll also push back if your scope doesn't match.</p>
+
+          <div class="intro-options">
+            <button class="intro-option">Bootstrapped — under $1K<span class="check"></span></button>
+            <button class="intro-option">Some savings — $1K–$10K<span class="check"></span></button>
+            <button class="intro-option">Serious — $10K–$50K<span class="check"></span></button>
+            <button class="intro-option">Funded — $50K+<span class="check"></span></button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(3)">&larr; Back</button>
+            <button class="intro-next" onclick="goToQ(5)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+        </div>
+
+        <!-- Question 5: Timeline -->
+        <div class="q-screen" data-q="5" style="display:none;">
+          <div class="intro-stage">Stage 05 / Timeline</div>
+          <h2 class="intro-question">When do you need this in the wild?</h2>
+          <p class="intro-helper">Aggressive timelines force good prioritization. Loose timelines tend to produce projects that never ship. Both are fine, but I'll plan differently.</p>
+
+          <div class="intro-options">
+            <button class="intro-option">30 days or less — sprint mode<span class="check"></span></button>
+            <button class="intro-option">2-3 months — focused MVP<span class="check"></span></button>
+            <button class="intro-option">6 months — proper v1<span class="check"></span></button>
+            <button class="intro-option">No hard deadline — quality over speed<span class="check"></span></button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(4)">&larr; Back</button>
+            <button class="intro-next" onclick="goToQ(6)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+        </div>
+
+        <!-- Question 6: Skills -->
+        <div class="q-screen" data-q="6" style="display:none;">
+          <div class="intro-stage">Stage 06 / Capabilities</div>
+          <h2 class="intro-question">What can you actually do yourself?</h2>
+          <p class="intro-helper">No judgment. The plan is wildly different if you can code vs. if you're going to use AI to build for you. Pick everything that applies.</p>
+
+          <div class="intro-options">
+            <button class="intro-option">I can code — full-stack<span class="check"></span></button>
+            <button class="intro-option">I can design / use Figma<span class="check"></span></button>
+            <button class="intro-option">I'm comfortable with AI builders (Claude, Cursor, Lovable)<span class="check"></span></button>
+            <button class="intro-option">I write well / can do marketing<span class="check"></span></button>
+            <button class="intro-option">I have a network I can sell to<span class="check"></span></button>
+            <button class="intro-option">I'm starting from zero — teach me<span class="check"></span></button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(5)">&larr; Back</button>
+            <button class="intro-next" onclick="goToQ(7)">Continue <span class="arrow">&rarr;</span></button>
+          </div>
+        </div>
+
+        <!-- Question 7: Success -->
+        <div class="q-screen" data-q="7" style="display:none;">
+          <div class="intro-stage">Stage 07 / Definition of Done</div>
+          <h2 class="intro-question">What does "winning" look like in 12 months?</h2>
+          <p class="intro-helper">Number of users? Revenue? Acquired? Profitable side hustle? Mission accomplished? Define success and I'll work backward.</p>
+
+          <div class="intro-input-wrap">
+            <textarea class="intro-textarea" placeholder="I want 500 active sitters in 3 NYC neighborhoods, doing $10K/month in bookings, with a 4.85+ rating. Profitable enough to support me full-time, or interesting enough to raise a seed round..."></textarea>
+            <button class="intro-mic" onclick="toggleMicSimple(this)">
+              <div class="intro-mic-icon"></div>
+            </button>
+          </div>
+
+          <div class="intro-footer">
+            <button class="intro-back" onclick="goToQ(6)">&larr; Back</button>
+            <button class="intro-next" onclick="finishIntro()">Finish discovery <span class="arrow">&rarr;</span></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== DASHBOARD ============== -->
+<div class="view" id="dashboard">
+  <div class="dash">
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-greeting">Good morning, <span class="light">Marcus.</span></h1>
+        <div class="dash-sub">Tuesday, May 12, 2026 / 3 active projects / 2 need your attention</div>
+      </div>
+      <button class="dash-new" onclick="switchView('intro')">
+        <span class="plus">+</span>
+        New project
+      </button>
+    </div>
+
+    <div class="dash-stats">
+      <div class="dash-stat">
+        <div class="dash-stat-label">Active Projects</div>
+        <div class="dash-stat-num">3</div>
+        <div class="dash-stat-change">+1 this month</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Avg. Completion</div>
+        <div class="dash-stat-num">68%</div>
+        <div class="dash-stat-change">on pace</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Risks Flagged</div>
+        <div class="dash-stat-num">4</div>
+        <div class="dash-stat-change warn">2 high priority</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Artifacts Generated</div>
+        <div class="dash-stat-num">37</div>
+        <div class="dash-stat-change">across all projects</div>
+      </div>
+    </div>
+
+    <div class="insights-row">
+      <div class="insight-card">
+        <div class="insight-label">Reality Check / Active</div>
+        <h3 class="insight-title">PawPair's 30-day timeline is at risk. Here's what to cut.</h3>
+        <p class="insight-body">Your current MVP scope includes a custom vouching system. Based on similar marketplaces, that's a 2-3 week build by itself. I've prepared three scope cuts that get you launched on time — review and approve.</p>
+        <span class="insight-action">Review the trade-offs &rarr;</span>
+      </div>
+      <div class="quick-card">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted);">This week</div>
+        <h4 style="margin-top: 8px;">Next actions</h4>
+        <div class="quick-list">
+          <div class="quick-item"><span class="dot"></span>Approve PawPair wireframes</div>
+          <div class="quick-item"><span class="dot moss"></span>Review Northbeam risk register</div>
+          <div class="quick-item"><span class="dot gold"></span>Schedule Field Notes launch emails</div>
+          <div class="quick-item"><span class="dot"></span>Weekly check-in (Friday)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-section-title">
+      Your projects
+      <span class="count">3 active / 1 archived</span>
+    </div>
+
+    <div class="projects">
+      <div class="project" onclick="switchView('workspace')">
+        <div class="project-name">
+          PawPair
+          <span class="industry">Consumer Marketplace / Mobile App</span>
+        </div>
+        <div class="project-phase">
+          <span class="label">Phase</span>
+          <span>MVP Build</span>
+        </div>
+        <div>
+          <div class="project-phase"><span class="label">Progress 72%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 72%"></div></div>
+        </div>
+        <div class="project-next">
+          <strong>Next step</strong>
+          Review wireframes &amp; approve user flow
+        </div>
+        <div class="project-arrow">&rarr;</div>
+      </div>
+
+      <div class="project">
+        <div class="project-name">
+          Northbeam Coffee
+          <span class="industry">Local Business / Brick &amp; Mortar</span>
+        </div>
+        <div class="project-phase">
+          <span class="label">Phase</span>
+          <span>Discovery Complete</span>
+        </div>
+        <div>
+          <div class="project-phase"><span class="label">Progress 34%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 34%"></div></div>
+        </div>
+        <div class="project-next">
+          <strong>Next step</strong>
+          Reality check pending — review risks
+        </div>
+        <div class="project-arrow">&rarr;</div>
+      </div>
+
+      <div class="project">
+        <div class="project-name">
+          Field Notes Course
+          <span class="industry">Creator / Digital Product</span>
+        </div>
+        <div class="project-phase">
+          <span class="label">Phase</span>
+          <span>Launch Prep</span>
+        </div>
+        <div>
+          <div class="project-phase"><span class="label">Progress 91%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 91%"></div></div>
+        </div>
+        <div class="project-next">
+          <strong>Next step</strong>
+          Schedule pre-launch email sequence
+        </div>
+        <div class="project-arrow">&rarr;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== WORKSPACE ============== -->
+<div class="view" id="workspace">
+  <div class="workspace">
+    <div class="ws-header">
+      <div>
+        <div class="ws-breadcrumb">Dashboard / Projects / PawPair</div>
+        <h1 class="ws-title">PawPair <span style="color: var(--muted); font-weight: 300;">— neighborhood dog sitters</span></h1>
+      </div>
+      <div class="ws-actions">
+        <button class="ws-btn">Share</button>
+        <button class="ws-btn">Reality check</button>
+        <button class="ws-btn primary">Export to Claude Code &rarr;</button>
+      </div>
+    </div>
+
+    <div class="ws-grid">
+      <aside class="ws-side">
+        <div class="ws-side-label">Artifacts</div>
+        <div class="ws-side-item active">Vision <span class="badge">v3</span></div>
+        <div class="ws-side-item">Scope <span class="badge">v2</span></div>
+        <div class="ws-side-item">Personas <span class="badge">v1</span></div>
+        <div class="ws-side-item">Roadmap <span class="badge">v2</span></div>
+        <div class="ws-side-item">Tech stack <span class="badge">v1</span></div>
+        <div class="ws-side-item">Wireframes <span class="badge">v1</span></div>
+        <div class="ws-side-item">Risk register <span class="badge">v2</span></div>
+        <div class="ws-side-item">Success metrics <span class="badge">v1</span></div>
+        <div class="ws-side-item">Budget <span class="badge">v1</span></div>
+
+        <div class="ws-side-label" style="margin-top: 20px;">Tools</div>
+        <div class="ws-side-item">Decision log</div>
+        <div class="ws-side-item">Pre-mortem</div>
+        <div class="ws-side-item">Pitch deck</div>
+      </aside>
+
+      <main class="artifact">
+        <div class="artifact-meta">
+          <div class="artifact-tag">Vision document / Auto-generated</div>
+          <div class="artifact-version">v3 / edited 4h ago</div>
+        </div>
+
+        <h2>PawPair</h2>
+        <div class="sub">Trusted dog sitters, three doors down.</div>
+
+        <h3>The problem</h3>
+        <p>Dog owners in dense urban neighborhoods don't trust strangers with their pets, but they also can't afford boarding ($75/night avg in NYC) or won't drop their dog at a kennel. They want someone local — ideally a neighbor — who they have already met or who comes with a strong recommendation from someone they know.</p>
+
+        <h3>The vision</h3>
+        <div class="pull-quote">
+          A trust-first sitter marketplace where every match is verified by a real connection — a neighbor, a vet, a previous client — not just a star rating.
+        </div>
+
+        <h3>Why now</h3>
+        <ul>
+          <li>Pet ownership in cities is up 41% since 2019 — the post-pandemic shift hasn't reversed.</li>
+          <li>Rover and Wag treat sitters as gig workers; trust is downstream of price.</li>
+          <li>Neighborhood-graph apps (Nextdoor, Citizen) have normalized hyperlocal identity.</li>
+          <li>Consumers are paying premium for "verified human" services — see Cameo, the rise of curated marketplaces.</li>
+        </ul>
+
+        <h3>Target user — primary persona</h3>
+        <div class="persona-grid">
+          <div class="persona">
+            <div class="persona-name">Anxious Anna</div>
+            <div class="persona-tag">Primary / 68% of target</div>
+            <div class="persona-row"><strong>Demographics</strong>28-42, urban, $90K+, no kids, one dog under 30 lbs</div>
+            <div class="persona-row"><strong>Pain</strong>Has cancelled trips to avoid leaving her dog with strangers</div>
+            <div class="persona-row"><strong>Job to be done</strong>"Find someone I'd trust with my house keys, not just my dog"</div>
+          </div>
+          <div class="persona">
+            <div class="persona-name">Side-Hustle Sam</div>
+            <div class="persona-tag">Supply side / Sitter persona</div>
+            <div class="persona-row"><strong>Demographics</strong>22-35, works from home, owns a dog, urban</div>
+            <div class="persona-row"><strong>Pain</strong>Wants $200-600/mo extra income, doesn't want to commute to it</div>
+            <div class="persona-row"><strong>Job to be done</strong>"Get paid for what I'd already do — hang with dogs"</div>
+          </div>
+        </div>
+
+        <h3>Success criteria for Year 1</h3>
+        <ul>
+          <li>Launch in 3 neighborhoods (target: Williamsburg, Park Slope, LES) by month 4.</li>
+          <li>500 verified sitters across launch markets, each with 3+ vouches.</li>
+          <li>4,000 completed bookings, 4.85+ avg rating, &lt;2% incident rate.</li>
+          <li>$120K GMV in Q4, 18% take rate, path-to-profitability slide for seed raise.</li>
+        </ul>
+      </main>
+
+      <aside class="chat">
+        <div class="chat-header">
+          <div class="chat-avatar">B</div>
+          <div class="chat-id">
+            <div class="name">Jetdale AI</div>
+            <div class="role">Marketplace specialist</div>
+          </div>
+        </div>
+        <div class="chat-body">
+          <div class="msg ai">
+            <span class="label">Discovery / Q14</span>
+            You mentioned "trust" three times in the last five answers. Let's lock that in as the core differentiator vs. Rover. Should we frame the entire vision around it?
+          </div>
+          <div class="msg you">
+            <span class="label">You</span>
+            Yes — trust is everything. Rover feels like Uber for dogs. I want this to feel like asking your neighbor.
+          </div>
+          <div class="msg ai">
+            <span class="label">Jetdale</span>
+            Got it. I've reframed your vision around "verified by a real connection" and updated the document on the left. I also flagged a risk: this slows down supply growth because every sitter needs vouches.
+          </div>
+          <div class="msg warning">
+            <span class="label">Reality check</span>
+            Heads up — your 30-day MVP timeline assumes you build the vouching system from scratch. That's 2-3 weeks alone. I'd recommend cutting it from MVP and using a simpler "neighbor-verified" badge first. Want me to update the roadmap?
+          </div>
+          <div class="msg you">
+            <span class="label">You</span>
+            Yes, do it. And add a phase 2 for the full vouching graph.
+          </div>
+          <div class="msg ai">
+            <span class="label">Jetdale</span>
+            Done. Roadmap updated, scope tightened, risk register marked as resolved. Ready to export the MVP scope to Claude Code whenever you are.
+          </div>
+        </div>
+        <div class="chat-input">
+          <input type="text" placeholder="Ask, refine, or dictate..." />
+          <button class="chat-mic" onclick="toggleMicSimple(this)">
+            <div class="intro-mic-icon"></div>
+          </button>
+          <button class="chat-send">&rarr;</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============== ADMIN DASHBOARD ============== -->
+<div class="view" id="admin">
+  <div class="admin">
+    <!-- Sidebar -->
+    <aside class="admin-side">
+      <div class="admin-side-brand">Jetdale / Admin</div>
+
+      <div class="admin-side-section">Overview</div>
+      <div class="admin-side-item active">Dashboard <span class="pill">LIVE</span></div>
+      <div class="admin-side-item">Revenue</div>
+      <div class="admin-side-item">Cohorts</div>
+
+      <div class="admin-side-section">Users</div>
+      <div class="admin-side-item">All users <span class="pill">12.4K</span></div>
+      <div class="admin-side-item">Subscriptions</div>
+      <div class="admin-side-item">Churn risk <span class="pill">42</span></div>
+      <div class="admin-side-item">Support tickets</div>
+
+      <div class="admin-side-section">Product</div>
+      <div class="admin-side-item">Projects</div>
+      <div class="admin-side-item">Archetypes</div>
+      <div class="admin-side-item">AI logs</div>
+      <div class="admin-side-item">Exports</div>
+
+      <div class="admin-side-section">System</div>
+      <div class="admin-side-item">Performance</div>
+      <div class="admin-side-item">Billing</div>
+      <div class="admin-side-item">Audit log</div>
+      <div class="admin-side-item">Feature flags</div>
+
+      <div class="admin-side-user">
+        <div class="admin-side-user-avatar">MR</div>
+        <div>
+          <div class="admin-side-user-name">Marcus R.</div>
+          <div class="admin-side-user-role">Founder / Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+      <div class="admin-header">
+        <div>
+          <h1 class="admin-title">
+            Investor Snapshot
+            <span class="live">Live</span>
+          </h1>
+          <div class="admin-sub">Period: Last 30 days / Updated 2 minutes ago / All times UTC</div>
+        </div>
+        <div class="admin-controls">
+          <div class="admin-control-group">
+            <button class="admin-control">7d</button>
+            <button class="admin-control active">30d</button>
+            <button class="admin-control">90d</button>
+            <button class="admin-control">12m</button>
+            <button class="admin-control">All</button>
+          </div>
+          <button class="admin-control">Compare</button>
+          <button class="admin-control primary">Export &rarr;</button>
+        </div>
+      </div>
+
+      <!-- TOP KPI ROW -->
+      <div class="kpi-grid">
+        <div class="kpi-card featured">
+          <div class="kpi-label">Monthly Recurring Revenue <span class="info">i</span></div>
+          <div class="kpi-value"><span class="currency">$</span>184,720</div>
+          <div class="kpi-change up">&uarr; 23.4% <span class="vs">vs. prev 30d</span></div>
+          <svg class="kpi-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#FF5B1F" stroke-width="2"
+              points="0,32 15,30 30,28 45,29 60,25 75,22 90,24 105,18 120,15 135,17 150,12 165,10 180,8 200,4"/>
+            <polyline fill="rgba(255,91,31,.15)" stroke="none"
+              points="0,32 15,30 30,28 45,29 60,25 75,22 90,24 105,18 120,15 135,17 150,12 165,10 180,8 200,4 200,40 0,40"/>
+          </svg>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Annual Run Rate <span class="info">i</span></div>
+          <div class="kpi-value"><span class="currency">$</span>2.21M</div>
+          <div class="kpi-change up">&uarr; 23.4% <span class="vs">vs. prev 30d</span></div>
+          <svg class="kpi-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#0E0F0C" stroke-width="1.5"
+              points="0,32 15,30 30,28 45,29 60,25 75,22 90,24 105,18 120,15 135,17 150,12 165,10 180,8 200,4"/>
+          </svg>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Paid Customers <span class="info">i</span></div>
+          <div class="kpi-value">3,847</div>
+          <div class="kpi-change up">&uarr; 412 <span class="vs">new this period</span></div>
+          <svg class="kpi-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#0E0F0C" stroke-width="1.5"
+              points="0,34 15,32 30,30 45,31 60,28 75,25 90,22 105,20 120,18 135,16 150,13 165,10 180,8 200,5"/>
+          </svg>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Net Revenue Retention <span class="info">i</span></div>
+          <div class="kpi-value">118%</div>
+          <div class="kpi-change up">&uarr; 4pp <span class="vs">vs. prev quarter</span></div>
+          <svg class="kpi-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#2E4A2C" stroke-width="1.5"
+              points="0,28 15,26 30,28 45,24 60,22 75,20 90,18 105,15 120,14 135,12 150,12 165,10 180,9 200,7"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- SECOND KPI ROW -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Active Projects</div>
+          <div class="kpi-value">8,214</div>
+          <div class="kpi-change up">&uarr; 18.2% <span class="vs">MoM</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Discovery Completion</div>
+          <div class="kpi-value">73.4<span class="currency">%</span></div>
+          <div class="kpi-change up">&uarr; 2.1pp <span class="vs">target: 75%</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg. Revenue per User</div>
+          <div class="kpi-value"><span class="currency">$</span>48</div>
+          <div class="kpi-change up">&uarr; $3 <span class="vs">vs. prev period</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Churn Rate (Monthly)</div>
+          <div class="kpi-value">3.2<span class="currency">%</span></div>
+          <div class="kpi-change down">&darr; 0.8pp <span class="vs">improving</span></div>
+        </div>
+      </div>
+
+      <!-- CHART ROW -->
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Revenue & New Customers</div>
+              <div class="chart-card-sub">Last 12 months / MRR vs. new paid signups</div>
+            </div>
+            <div class="chart-legend">
+              <div class="chart-legend-item"><span class="chart-legend-dot" style="background: var(--accent);"></span> MRR</div>
+              <div class="chart-legend-item"><span class="chart-legend-dot" style="background: var(--ink);"></span> New paid</div>
+            </div>
+          </div>
+          <svg class="chart-svg" viewBox="0 0 700 280" preserveAspectRatio="none">
+            <!-- Gridlines -->
+            <g stroke="#DDD6C5" stroke-width="1">
+              <line x1="40" y1="40" x2="700" y2="40"/>
+              <line x1="40" y1="100" x2="700" y2="100"/>
+              <line x1="40" y1="160" x2="700" y2="160"/>
+              <line x1="40" y1="220" x2="700" y2="220"/>
+            </g>
+            <!-- Y-axis labels -->
+            <g font-family="Space Mono" font-size="10" fill="#6B6B62">
+              <text x="34" y="44" text-anchor="end">$200K</text>
+              <text x="34" y="104" text-anchor="end">$150K</text>
+              <text x="34" y="164" text-anchor="end">$100K</text>
+              <text x="34" y="224" text-anchor="end">$50K</text>
+            </g>
+            <!-- X-axis labels -->
+            <g font-family="Space Mono" font-size="10" fill="#6B6B62">
+              <text x="60" y="265">Jun</text>
+              <text x="115" y="265">Jul</text>
+              <text x="170" y="265">Aug</text>
+              <text x="225" y="265">Sep</text>
+              <text x="280" y="265">Oct</text>
+              <text x="335" y="265">Nov</text>
+              <text x="390" y="265">Dec</text>
+              <text x="445" y="265">Jan</text>
+              <text x="500" y="265">Feb</text>
+              <text x="555" y="265">Mar</text>
+              <text x="610" y="265">Apr</text>
+              <text x="660" y="265">May</text>
+              <!-- Bars (new customers) -->
+            </g>
+            <g fill="#0E0F0C" opacity=".85">
+              <rect x="50" y="220" width="22" height="20"/>
+              <rect x="105" y="215" width="22" height="25"/>
+              <rect x="160" y="210" width="22" height="30"/>
+              <rect x="215" y="205" width="22" height="35"/>
+              <rect x="270" y="195" width="22" height="45"/>
+              <rect x="325" y="190" width="22" height="50"/>
+              <rect x="380" y="180" width="22" height="60"/>
+              <rect x="435" y="170" width="22" height="70"/>
+              <rect x="490" y="160" width="22" height="80"/>
+              <rect x="545" y="150" width="22" height="90"/>
+              <rect x="600" y="140" width="22" height="100"/>
+              <rect x="650" y="125" width="22" height="115"/>
+            </g>
+            <!-- MRR area + line -->
+            <path d="M 60 215 L 115 208 L 170 195 L 225 180 L 280 170 L 335 155 L 390 138 L 445 122 L 500 105 L 555 88 L 610 65 L 660 42"
+              fill="none" stroke="#FF5B1F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 60 215 L 115 208 L 170 195 L 225 180 L 280 170 L 335 155 L 390 138 L 445 122 L 500 105 L 555 88 L 610 65 L 660 42 L 660 240 L 60 240 Z"
+              fill="rgba(255,91,31,.1)" stroke="none"/>
+            <!-- Endpoint dot -->
+            <circle cx="660" cy="42" r="5" fill="#FF5B1F"/>
+            <circle cx="660" cy="42" r="9" fill="none" stroke="#FF5B1F" stroke-width="1.5" opacity=".4"/>
+          </svg>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Activation Funnel</div>
+              <div class="chart-card-sub">Last 30 days / All signups</div>
+            </div>
+          </div>
+          <div class="funnel">
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 100%;">
+                  <span class="funnel-label">Signed up</span>
+                  <span class="funnel-num">8,402</span>
+                </div>
+              </div>
+              <div class="funnel-pct">100%</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 91%;">
+                  <span class="funnel-label">Started discovery</span>
+                  <span class="funnel-num">7,646</span>
+                </div>
+              </div>
+              <div class="funnel-pct">91%</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 73%;">
+                  <span class="funnel-label">Completed discovery</span>
+                  <span class="funnel-num">6,154</span>
+                </div>
+              </div>
+              <div class="funnel-pct">73%</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 58%;">
+                  <span class="funnel-label">Generated artifacts</span>
+                  <span class="funnel-num">4,873</span>
+                </div>
+              </div>
+              <div class="funnel-pct">58%</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 46%;">
+                  <span class="funnel-label">Exported to AI builder</span>
+                  <span class="funnel-num">3,865</span>
+                </div>
+              </div>
+              <div class="funnel-pct">46%</div>
+            </div>
+            <div class="funnel-row">
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width: 38%;">
+                  <span class="funnel-label">Converted to paid</span>
+                  <span class="funnel-num">3,193</span>
+                </div>
+              </div>
+              <div class="funnel-pct">38%</div>
+            </div>
+          </div>
+          <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--paper-3); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);">Biggest drop-off</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--accent-2);">Discovery &rarr; Artifacts ( -15pp )</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COHORT TABLE -->
+      <div class="chart-card" style="margin-bottom: 32px;">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">Cohort Retention</div>
+            <div class="chart-card-sub">% of users still active by month / signup cohort</div>
+          </div>
+          <div class="chart-legend">
+            <div class="chart-legend-item">Heatmap intensity = retention %</div>
+          </div>
+        </div>
+        <table class="cohort-table">
+          <thead>
+            <tr>
+              <th>Cohort</th>
+              <th>Signups</th>
+              <th>M0</th>
+              <th>M1</th>
+              <th>M2</th>
+              <th>M3</th>
+              <th>M4</th>
+              <th>M5</th>
+              <th>M6</th>
+              <th>M7</th>
+              <th>M8</th>
+              <th>M9</th>
+              <th>M10</th>
+              <th>M11</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Jun 2025</td><td>312</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.7); color: white;">62%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.6); color: white;">54%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.5); color: white;">48%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.45);">44%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.4);">41%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.38);">39%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.35);">37%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.34);">36%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.33);">35%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.32);">34%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.32);">34%</span></td>
+            </tr>
+            <tr>
+              <td>Jul 2025</td><td>428</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.72); color: white;">64%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.62); color: white;">56%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.52); color: white;">50%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.47);">46%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.42);">43%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.4);">41%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.38);">40%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.36);">38%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.35);">37%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.34);">36%</span></td>
+              <td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Aug 2025</td><td>561</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.76); color: white;">67%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.66); color: white;">59%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.56); color: white;">52%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.5); color: white;">49%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.45);">46%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.42);">44%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.4);">42%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.38);">40%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.37);">39%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Sep 2025</td><td>724</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.78); color: white;">69%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.68); color: white;">61%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.59); color: white;">55%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.52); color: white;">51%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.48);">47%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.45);">45%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.42);">43%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.4);">42%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Oct 2025</td><td>889</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.81); color: white;">72%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.7); color: white;">63%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.62); color: white;">57%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.55); color: white;">53%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.5); color: white;">49%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.47);">47%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.45);">45%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Nov 2025</td><td>1,047</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.84); color: white;">74%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.73); color: white;">65%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.65); color: white;">60%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.58); color: white;">55%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.52); color: white;">51%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.5); color: white;">49%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Dec 2025</td><td>1,318</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.86); color: white;">76%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.76); color: white;">67%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.67); color: white;">61%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.6); color: white;">57%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.54); color: white;">53%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Jan 2026</td><td>1,562</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.88); color: white;">78%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.78); color: white;">69%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.7); color: white;">63%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.63); color: white;">59%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Feb 2026</td><td>1,841</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.9); color: white;">80%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.81); color: white;">71%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.72); color: white;">65%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Mar 2026</td><td>2,089</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.92); color: white;">82%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.84); color: white;">74%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>Apr 2026</td><td>2,341</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.93); color: white;">83%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+            <tr>
+              <td>May 2026</td><td>2,614</td>
+              <td><span class="cohort-cell" style="background: rgba(255,91,31,.95); color: white;">100%</span></td>
+              <td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td><td style="color: var(--muted);">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SYSTEM HEALTH -->
+      <div class="health-grid">
+        <div class="health-card">
+          <div class="health-label">API Performance</div>
+          <div class="health-status">
+            <div class="health-dot green"></div>
+            <div class="health-name">All systems operational</div>
+          </div>
+          <div class="health-metric">142ms</div>
+          <div class="health-sub">P95 latency / Target: &lt;200ms</div>
+        </div>
+        <div class="health-card">
+          <div class="health-label">AI Generation</div>
+          <div class="health-status">
+            <div class="health-dot green"></div>
+            <div class="health-name">Claude API healthy</div>
+          </div>
+          <div class="health-metric">3.4s</div>
+          <div class="health-sub">Avg. artifact gen time / 99.7% success</div>
+        </div>
+        <div class="health-card">
+          <div class="health-label">Infrastructure</div>
+          <div class="health-status">
+            <div class="health-dot yellow"></div>
+            <div class="health-name">Elevated DB load</div>
+          </div>
+          <div class="health-metric">72%</div>
+          <div class="health-sub">DB CPU / Scaling recommended</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM GRID -->
+      <div class="bottom-grid">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Top Archetypes by Project Volume</div>
+              <div class="chart-card-sub">Last 30 days</div>
+            </div>
+          </div>
+          <div class="archetype-list">
+            <div class="archetype-row">
+              <div class="archetype-name">Consumer mobile app <span class="arc-sub">B2C / mobile-first</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 100%;"></div></div>
+              <div class="archetype-count">2,847</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">SaaS B2B <span class="arc-sub">Subscription software</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 84%;"></div></div>
+              <div class="archetype-count">2,391</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">Game development <span class="arc-sub">Indie / mobile games</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 62%;"></div></div>
+              <div class="archetype-count">1,764</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">Creator digital product <span class="arc-sub">Courses, memberships</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 48%;"></div></div>
+              <div class="archetype-count">1,367</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">E-commerce brand <span class="arc-sub">DTC / Shopify</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 35%;"></div></div>
+              <div class="archetype-count">993</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">Marketplace <span class="arc-sub">Two-sided</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 28%;"></div></div>
+              <div class="archetype-count">812</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">Local service business <span class="arc-sub">Brick &amp; mortar digital</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 22%;"></div></div>
+              <div class="archetype-count">631</div>
+            </div>
+            <div class="archetype-row">
+              <div class="archetype-name">Other archetypes <span class="arc-sub">40 more categories</span></div>
+              <div class="archetype-bar-wrap"><div class="archetype-bar" style="width: 18%;"></div></div>
+              <div class="archetype-count">512</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Recent Activity</div>
+              <div class="chart-card-sub">Real-time / Filtered: All events</div>
+            </div>
+          </div>
+          <div class="activity">
+            <div class="activity-item">
+              <div class="activity-dot moss"></div>
+              <div class="activity-text">
+                <strong>New Pro subscription</strong> — sarah.chen@gmail.com
+                <span class="activity-meta">Indie hacker / Game dev / $49 MRR</span>
+              </div>
+              <div class="activity-time">2m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-text">
+                <strong>Export to Claude Code</strong> — kunal.sharma@outlook.com
+                <span class="activity-meta">PawPair v3.2 / 47 artifacts</span>
+              </div>
+              <div class="activity-time">4m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-text">
+                <strong>Discovery completed</strong> — alex.morgan@hey.com
+                <span class="activity-meta">Game development archetype / 28 questions</span>
+              </div>
+              <div class="activity-time">6m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot gold"></div>
+              <div class="activity-text">
+                <strong>Team plan upgrade</strong> — pixelmoss-studios.com
+                <span class="activity-meta">3 seats / $147 MRR / 12-month</span>
+              </div>
+              <div class="activity-time">11m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot moss"></div>
+              <div class="activity-text">
+                <strong>New Pro subscription</strong> — jen@northwindco.io
+                <span class="activity-meta">Local service business</span>
+              </div>
+              <div class="activity-time">18m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot muted"></div>
+              <div class="activity-text">
+                <strong>Free signup</strong> — david.lee@stanford.edu
+                <span class="activity-meta">Referred by Twitter / @paulg</span>
+              </div>
+              <div class="activity-time">24m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-text">
+                <strong>Reality check accepted</strong> — riley.k@protonmail.com
+                <span class="activity-meta">Cut 4 features from MVP / Saved ~3 weeks</span>
+              </div>
+              <div class="activity-time">31m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot gold"></div>
+              <div class="activity-text">
+                <strong>Annual plan purchased</strong> — emily.tran@figma.com
+                <span class="activity-meta">$470 / Saves $118 vs monthly</span>
+              </div>
+              <div class="activity-time">42m ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MANAGEMENT TABLE -->
+      <div class="users-section">
+        <div class="users-table-wrap">
+          <div class="users-table-header">
+            <div class="users-search">
+              <input type="text" placeholder="Search users by name, email, or company..." />
+              <button class="admin-control">Filters</button>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: .1em;">12,428 USERS</span>
+              <button class="admin-control">Export CSV</button>
+              <button class="admin-control primary">+ Invite</button>
+            </div>
+          </div>
+
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Projects</th>
+                <th>MRR</th>
+                <th>Activity</th>
+                <th>Last seen</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar accent">SC</div>
+                    <div class="user-info">
+                      <div class="user-name">Sarah Chen</div>
+                      <div class="user-email">sarah.chen@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>4</td>
+                <td>$49</td>
+                <td><div class="mini-bar"><div style="width: 92%;"></div></div></td>
+                <td>2 min ago</td>
+                <td>May 12 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar moss">KS</div>
+                    <div class="user-info">
+                      <div class="user-name">Kunal Sharma</div>
+                      <div class="user-email">kunal.sharma@outlook.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>7</td>
+                <td>$49</td>
+                <td><div class="mini-bar"><div style="width: 88%;"></div></div></td>
+                <td>4 min ago</td>
+                <td>Mar 03 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar gold">PM</div>
+                    <div class="user-info">
+                      <div class="user-name">Pixelmoss Studios</div>
+                      <div class="user-email">team@pixelmoss-studios.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag team">Team</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>14</td>
+                <td>$147</td>
+                <td><div class="mini-bar"><div style="width: 97%;"></div></div></td>
+                <td>11 min ago</td>
+                <td>Jan 17 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar ink">AM</div>
+                    <div class="user-info">
+                      <div class="user-name">Alex Morgan</div>
+                      <div class="user-email">alex.morgan@hey.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag trial">Trial</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>1</td>
+                <td>$0</td>
+                <td><div class="mini-bar"><div style="width: 64%;"></div></div></td>
+                <td>6 min ago</td>
+                <td>May 09 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar accent">JN</div>
+                    <div class="user-info">
+                      <div class="user-name">Jen Nakamura</div>
+                      <div class="user-email">jen@northwindco.io</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>2</td>
+                <td>$49</td>
+                <td><div class="mini-bar"><div style="width: 71%;"></div></div></td>
+                <td>18 min ago</td>
+                <td>May 12 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar moss">ET</div>
+                    <div class="user-info">
+                      <div class="user-name">Emily Tran</div>
+                      <div class="user-email">emily.tran@figma.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro (Annual)</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>3</td>
+                <td>$39</td>
+                <td><div class="mini-bar"><div style="width: 81%;"></div></div></td>
+                <td>42 min ago</td>
+                <td>Feb 21 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar ink">RK</div>
+                    <div class="user-info">
+                      <div class="user-name">Riley Kim</div>
+                      <div class="user-email">riley.k@protonmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>5</td>
+                <td>$49</td>
+                <td><div class="mini-bar"><div style="width: 76%;"></div></div></td>
+                <td>31 min ago</td>
+                <td>Dec 14 2025</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar gold">DL</div>
+                    <div class="user-info">
+                      <div class="user-name">David Lee</div>
+                      <div class="user-email">david.lee@stanford.edu</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag free">Free</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>0</td>
+                <td>$0</td>
+                <td><div class="mini-bar"><div style="width: 12%;"></div></div></td>
+                <td>24 min ago</td>
+                <td>May 12 2026</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar accent">MO</div>
+                    <div class="user-info">
+                      <div class="user-name">Marcus Okonkwo</div>
+                      <div class="user-email">marcus.o@gameforge.dev</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag pro">Pro</span></td>
+                <td><span class="tag churn">Churn risk</span></td>
+                <td>2</td>
+                <td>$49</td>
+                <td><div class="mini-bar"><div style="width: 18%;"></div></div></td>
+                <td>14 days ago</td>
+                <td>Sep 30 2025</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar moss">PT</div>
+                    <div class="user-info">
+                      <div class="user-name">Priya Tata</div>
+                      <div class="user-email">priya@indielab.studio</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag team">Team</span></td>
+                <td><span class="tag active">Active</span></td>
+                <td>9</td>
+                <td>$147</td>
+                <td><div class="mini-bar"><div style="width: 94%;"></div></div></td>
+                <td>1h ago</td>
+                <td>Oct 22 2025</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="padding: 16px 24px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .08em; color: var(--muted);">
+            <div>SHOWING 10 OF 12,428 USERS</div>
+            <div style="display: flex; gap: 6px;">
+              <button class="admin-control" style="padding: 6px 12px;">&larr;</button>
+              <button class="admin-control active" style="padding: 6px 12px;">1</button>
+              <button class="admin-control" style="padding: 6px 12px;">2</button>
+              <button class="admin-control" style="padding: 6px 12px;">3</button>
+              <button class="admin-control" style="padding: 6px 12px;">...</button>
+              <button class="admin-control" style="padding: 6px 12px;">1,243</button>
+              <button class="admin-control" style="padding: 6px 12px;">&rarr;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);">
+        <div>Jetdale Admin / v2.4.1 / Build 8472</div>
+        <div>Data refreshes every 60s · SOC2 Type II · GDPR compliant</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// View switching
+function switchView(target) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(target).classList.add('active');
+  const tab = document.querySelector(`.nav-tab[data-view="${target}"]`);
+  if (tab) tab.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
+});
+
+// Sidebar artifact selection
+document.querySelectorAll('.ws-side-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.ws-side-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// Discovery flow
+const totalQs = 12;
+let currentQ = 3;
+
+function goToQ(n) {
+  document.querySelectorAll('.q-screen').forEach(s => s.style.display = 'none');
+  const target = document.querySelector(`.q-screen[data-q="${n}"]`);
+  if (target) {
+    target.style.display = 'block';
+    currentQ = n;
+    document.getElementById('q-current').textContent = n;
+    const pct = Math.round((n / totalQs) * 100);
+    document.getElementById('q-fill').style.width = pct + '%';
+    document.getElementById('q-percent').textContent = pct + '%';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function finishIntro() {
+  // Simulate generating artifacts -> jump to workspace
+  switchView('workspace');
+}
+
+// Option selection (visual only — single-select per group)
+document.querySelectorAll('.intro-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const parent = opt.parentElement;
+    parent.querySelectorAll('.intro-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+  });
+});
+
+// Voice / mic simulation
+function toggleMic(btnId, inputId) {
+  const btn = document.getElementById(btnId);
+  const input = document.getElementById(inputId);
+  if (!btn) return;
+
+  if (btn.classList.contains('recording')) {
+    btn.classList.remove('recording');
+  } else {
+    btn.classList.add('recording');
+    // Simulate live transcription appearing
+    const samples = [
+      'I want to build an app...',
+      'I want to build an app that helps dog owners...',
+      'I want to build an app that helps dog owners find sitters in their neighborhood...',
+      'I want to build an app that helps dog owners find trusted sitters in their neighborhood — basically Rover but trust-first, vouching-based.'
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      if (!btn.classList.contains('recording') || i >= samples.length) {
+        clearInterval(interval);
+        return;
+      }
+      if (input) input.value = samples[i];
+      i++;
+    }, 700);
+    setTimeout(() => btn.classList.remove('recording'), 3500);
+  }
+}
+
+function toggleMicSimple(btnOrId) {
+  const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
+  if (!btn) return;
+  btn.classList.toggle('recording');
+  if (btn.classList.contains('recording')) {
+    setTimeout(() => btn.classList.remove('recording'), 3000);
+  }
+}
+
+// Initialize progress bar on intro view
+goToQ(3);
+</script>
+
+</body>
+</html>

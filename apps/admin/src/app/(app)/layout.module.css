@@ -1,0 +1,168 @@
+/* ============================================================
+   Jetdale — App Layout
+   Portal nav: logo, tabs, user avatar with dropdown
+   ============================================================ */
+
+.page { position: relative; z-index: 2; min-height: 100vh; }
+
+/* ---------- NAV ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(244,241,234,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.navInner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.logo {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -.04em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.logoMark {
+  width: 26px;
+  height: 26px;
+  background: var(--ink);
+  position: relative;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.logoMark::before, .logoMark::after {
+  content: '';
+  position: absolute;
+  background: var(--accent);
+}
+.logoMark::before { top: 6px; left: 6px; width: 14px; height: 2px; }
+.logoMark::after { top: 10px; left: 6px; width: 9px; height: 2px; }
+
+.navTabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.navTab {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--muted);
+  transition: all .2s;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.navTab:hover { color: var(--ink); }
+
+.navTabActive {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  transition: all .2s;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- RIGHT SIDE ---------- */
+.navRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.avatar:hover { opacity: .8; }
+
+/* ---------- DROPDOWN ---------- */
+.userMenu {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(14,15,12,.1);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.dropdownEmail {
+  padding: 14px 16px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--rule);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+.dropdownItem:hover {
+  background: var(--paper-2);
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 700px) {
+  .navInner { padding: 12px 18px; gap: 12px; }
+  .navTabs { display: none; }
+}

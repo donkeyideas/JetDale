@@ -1,0 +1,154 @@
+/* ============================================================
+   Jetdale Admin — Dashboard Page CSS Module
+   ============================================================ */
+
+/* ── Sparkline SVG in featured KPI ─────────────────────────── */
+
+.sparklineSvg {
+  display: block;
+  margin-top: 16px;
+  width: 100%;
+  height: 40px;
+}
+
+.sparklineSvg path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparklineSvg .sparkArea {
+  fill: rgba(255, 91, 31, 0.15);
+  stroke: none;
+}
+
+/* ── Cohort Heatmap ────────────────────────────────────────── */
+
+.cohortTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+
+.cohortTable th {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.cohortTable th:first-child {
+  text-align: left;
+}
+
+.cohortTable td {
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 6px;
+  border-radius: 4px;
+  min-width: 48px;
+}
+
+.cohortRowLabel {
+  text-align: left !important;
+  font-size: 11px !important;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ── Revenue Chart Placeholder ─────────────────────────────── */
+
+.revenueChart {
+  position: relative;
+  min-height: 240px;
+}
+
+.chartBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 200px;
+  padding-top: 20px;
+}
+
+.chartBarCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chartBar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--ink);
+  position: relative;
+}
+
+.chartBarAccent {
+  background: var(--accent);
+}
+
+.chartBarLabel {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.chartAxis {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(14, 15, 12, 0.08);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+/* ── Health Card Inner ─────────────────────────────────────── */
+
+.healthHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.healthTitle {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ── Funnel Inner ──────────────────────────────────────────── */
+
+.funnelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.funnelTitle {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.funnelTotal {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
