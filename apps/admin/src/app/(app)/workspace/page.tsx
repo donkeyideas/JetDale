@@ -351,7 +351,27 @@ function WorkspaceContent() {
       const { data, error } = await supa.functions.invoke('ai-reality-check', {
         body: { projectId: project.id },
       });
-      if (error) throw error;
+      if (error) {
+        // The supabase-js wrapper hides the response body behind a generic
+        // "non-2xx status code" message. Pull the actual server error out.
+        let detail = error.message || 'Reality check failed.';
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx && typeof ctx.text === 'function') {
+            const text = await ctx.text();
+            try {
+              const json = JSON.parse(text) as { error?: string };
+              if (json.error) detail = json.error;
+              else if (text) detail = text;
+            } catch {
+              if (text) detail = text;
+            }
+          }
+        } catch {
+          /* ignore — fall back to the wrapper message */
+        }
+        throw new Error(detail);
+      }
       if (data && typeof data.score === 'number') {
         setReviewScore({
           overall: data.score,

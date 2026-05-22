@@ -310,8 +310,11 @@ Deno.serve(async (req) => {
     if (err instanceof AuthError) {
       return errorResponse(err.message, err.status);
     }
+    const detail = err instanceof Error ? err.message : String(err);
     console.error('ai-reality-check error:', err);
-    return errorResponse('Internal server error', 500);
+    // Surface the underlying error message so client-side debugging
+    // doesn't have to guess from a generic 500.
+    return errorResponse('Reality check failed: ' + detail, 500);
   }
 });
 
@@ -383,7 +386,7 @@ Respond with ONLY a valid JSON object (no markdown fences, no text before or aft
 === RULES ===
 - severity must be one of: "high", "medium", "low"
 - area must be one of: "budget", "timeline", "scope", "market", "technical", "team", "legal"
-- artifact_type in proposed_changes must match actual artifact types: vision, scope, personas, roadmap, tech_stack, wireframes, risk_register, success_metrics, budget, decision_log, pre_mortem, pitch_deck
+- artifact_type in proposed_changes must match actual artifact types: vision, scope, personas, competitive_analysis, user_journey, roadmap, tech_stack, architecture_overview, wireframes, raci_matrix, success_metrics, budget, go_to_market, risk_register, decision_log, pre_mortem, pitch_deck
 - Include 4-10 concerns. Do not pad with trivial issues, but do not ignore real problems.
 - Include 2-6 proposed changes. Only suggest changes that would meaningfully improve the plan.
 - Be specific. Reference actual numbers, features, and statements from the documents.
@@ -451,6 +454,12 @@ function sanitizeOutput(output: RealityCheckOutput): RealityCheckOutput {
     'decision_log',
     'pre_mortem',
     'pitch_deck',
+    // Added: the 5 artifact types the web frontend also generates.
+    'competitive_analysis',
+    'user_journey',
+    'architecture_overview',
+    'raci_matrix',
+    'go_to_market',
   ]);
 
   const concerns = (output.concerns || [])
