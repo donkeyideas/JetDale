@@ -21,6 +21,16 @@ const GENERATION_ORDER = [
   'decision_log', 'pre_mortem', 'pitch_deck',
 ] as const;
 
+// Documents generate in waves: each wave runs in parallel, and later waves
+// receive earlier waves' output as context. ~3-4x faster than 17 sequential
+// calls while keeping cross-document coherence.
+const GENERATION_WAVES: string[][] = [
+  ['vision', 'personas', 'competitive_analysis', 'scope'],
+  ['user_journey', 'tech_stack', 'architecture_overview', 'wireframes'],
+  ['roadmap', 'raci_matrix', 'success_metrics', 'budget'],
+  ['go_to_market', 'risk_register', 'decision_log', 'pre_mortem', 'pitch_deck'],
+];
+
 const ARTIFACT_LABELS: Record<string, string> = {
   vision: 'Vision', personas: 'Personas', competitive_analysis: 'Competitive Analysis',
   scope: 'Scope', user_journey: 'User Journey', tech_stack: 'Tech Stack',
@@ -38,7 +48,6 @@ function GenerateContent() {
 
   const [project, setProject] = useState<JetdaleProject | null>(null);
   const [statuses, setStatuses] = useState<Record<string, ArtifactStatus>>({});
-  const [currentIdx, setCurrentIdx] = useState(-1);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [userId, setUserId] = useState('');
@@ -77,77 +86,90 @@ function GenerateContent() {
 
     async function generate() {
       const discoveryAnswers = answersToPromptFormat(project!.discoveryAnswers);
-      const existingArtifacts: Array<{ type: string; contentMarkdown: string }> = [];
 
-      // Find first non-ready artifact to start from
-      let startIdx = 0;
-      for (let i = 0; i < GENERATION_ORDER.length; i++) {
-        const existing = project!.artifacts[GENERATION_ORDER[i]];
+      // Artifacts already generated (resume support) become context for the rest.
+      const context: Array<{ type: string; contentMarkdown: string }> = [];
+      const finished = new Set<string>();
+      for (const type of GENERATION_ORDER) {
+        const existing = project!.artifacts[type];
         if (existing?.status === 'ready') {
-          existingArtifacts.push({ type: GENERATION_ORDER[i], contentMarkdown: existing.contentMarkdown });
-          startIdx = i + 1;
-        } else {
-          break;
+          context.push({ type, contentMarkdown: existing.contentMarkdown });
+          finished.add(type);
         }
       }
 
-      for (let i = startIdx; i < GENERATION_ORDER.length; i++) {
-        const type = GENERATION_ORDER[i];
-        setCurrentIdx(i);
-        setStatuses((s) => ({ ...s, [type]: 'generating' }));
+      let quotaHit = false;
 
-        try {
-          const res = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              artifactType: type,
-              archetypeName: project!.archetypeName,
-              discoveryAnswers,
-              existingArtifacts: existingArtifacts.length ? existingArtifacts : undefined,
-            }),
-          });
+      // Generate wave by wave; documents within a wave run in parallel.
+      for (const wave of GENERATION_WAVES) {
+        const todo = wave.filter((t) => !finished.has(t));
+        if (todo.length === 0) continue;
 
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-            // Plan limit reached — stop generating and tell the user.
-            if (res.status === 402) {
-              setStatuses((s) => ({ ...s, [type]: 'failed' }));
-              setError(err.error || 'You have reached your plan limit. Upgrade to generate more documents.');
-              break;
+        setStatuses((s) => {
+          const next = { ...s };
+          for (const t of todo) next[t] = 'generating';
+          return next;
+        });
+
+        // Snapshot context so every doc in this wave sees the same inputs.
+        const waveContext = context.length ? [...context] : undefined;
+
+        const results = await Promise.all(
+          todo.map(async (type) => {
+            try {
+              const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  artifactType: type,
+                  archetypeName: project!.archetypeName,
+                  discoveryAnswers,
+                  existingArtifacts: waveContext,
+                }),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+                return { type, ok: false as const, status: res.status, error: err.error as string | undefined };
+              }
+              const data = await res.json();
+              return { type, ok: true as const, contentMarkdown: (data.contentMarkdown as string) || '' };
+            } catch {
+              return { type, ok: false as const, status: 0, error: undefined };
             }
-            console.error(`Failed to generate ${type}:`, err);
-            setStatuses((s) => ({ ...s, [type]: 'failed' }));
-            updateProjectArtifact(project!.id, type, {
-              status: 'failed', contentMarkdown: '', generatedAt: new Date().toISOString(), version: 1,
-            } as ArtifactData);
-            continue;
+          }),
+        );
+
+        for (const r of results) {
+          if (r.ok) {
+            const artifactData: ArtifactData = {
+              type: r.type as ArtifactData['type'],
+              status: 'ready',
+              contentMarkdown: r.contentMarkdown,
+              generatedAt: new Date().toISOString(),
+              version: 1,
+            };
+            setStatuses((s) => ({ ...s, [r.type]: 'ready' }));
+            updateProjectArtifact(project!.id, r.type, artifactData);
+            if (project!.userId) {
+              syncArtifactToSupabase(project!.id, project!.userId, r.type, artifactData).catch(() => {});
+            }
+            context.push({ type: r.type, contentMarkdown: r.contentMarkdown });
+            finished.add(r.type);
+          } else {
+            setStatuses((s) => ({ ...s, [r.type]: 'failed' }));
+            if (r.status === 402) {
+              quotaHit = true;
+              setError(r.error || 'You have reached your plan limit. Upgrade to generate more documents.');
+            } else {
+              console.error(`Failed to generate ${r.type}`);
+              updateProjectArtifact(project!.id, r.type, {
+                status: 'failed', contentMarkdown: '', generatedAt: new Date().toISOString(), version: 1,
+              } as ArtifactData);
+            }
           }
-
-          const data = await res.json();
-          const contentMarkdown = data.contentMarkdown || '';
-
-          const artifactData: ArtifactData = {
-            type: type as ArtifactData['type'],
-            status: 'ready',
-            contentMarkdown,
-            generatedAt: new Date().toISOString(),
-            version: 1,
-          };
-          setStatuses((s) => ({ ...s, [type]: 'ready' }));
-          updateProjectArtifact(project!.id, type, artifactData);
-
-          // Background: sync to Supabase
-          if (project!.userId) {
-            syncArtifactToSupabase(project!.id, project!.userId, type, artifactData).catch(() => {});
-          }
-
-          existingArtifacts.push({ type, contentMarkdown });
-        } catch (err) {
-          console.error(`Error generating ${type}:`, err);
-          setStatuses((s) => ({ ...s, [type]: 'failed' }));
-          setError(`Failed to generate ${ARTIFACT_LABELS[type]}. Check your connection.`);
         }
+
+        if (quotaHit) break;
       }
 
       // All done — update phase locally AND sync to Supabase so the dashboard
@@ -194,7 +216,7 @@ function GenerateContent() {
       <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 32 }}>
         {done
           ? 'All 17 planning documents have been generated. Head to your workspace to review and refine.'
-          : 'Jetdale is generating 17 planning documents from your discovery answers. This takes 2-3 minutes.'}
+          : 'Jetdale is generating 17 planning documents from your discovery answers — this usually takes under a minute.'}
       </p>
 
       {/* Progress bar */}

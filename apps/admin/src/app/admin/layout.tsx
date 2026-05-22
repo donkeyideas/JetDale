@@ -219,6 +219,7 @@ export default function AdminLayout({
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [counts, setCounts] = useState<SidebarCounts | null>(null);
   const [status, setStatus] = useState<'loading' | 'ok' | 'denied'>('loading');
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,8 +274,23 @@ export default function AdminLayout({
 
   return (
     <div className={s.adminGrid}>
+      {/* ── Mobile top bar ──────────────────────────────────── */}
+      <div className={s.mobileBar}>
+        <button
+          type="button"
+          className={s.mobileBarBtn}
+          aria-label="Open menu"
+          onClick={() => setNavOpen(true)}
+        >
+          <span /><span /><span />
+        </button>
+        <span className={s.mobileBarTitle}>Jetdale Admin</span>
+      </div>
+
+      {navOpen && <div className={s.scrim} onClick={() => setNavOpen(false)} />}
+
       {/* ── Sidebar ─────────────────────────────────────────── */}
-      <aside className={s.sidebar}>
+      <aside className={`${s.sidebar} ${navOpen ? s.sidebarOpen : ''}`}>
         <div className={s.brand}>Jetdale Admin</div>
 
         <nav className={s.sideNav}>
@@ -293,6 +309,7 @@ export default function AdminLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setNavOpen(false)}
                     className={`${s.sideItem} ${isActive ? s.sideItemActive : ''}`}
                   >
                     <span className={s.sideItemLabel}>

@@ -3,8 +3,14 @@
 // Loads fonts, sets up global styles, SEO defaults.
 // ============================================================
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://jetdale.com';
 

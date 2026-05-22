@@ -98,6 +98,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/dashboard" className={s.dropdownItem} onClick={() => setMenuOpen(false)}>
                     Dashboard
                   </Link>
+                  <Link href="/new" className={s.dropdownItem} onClick={() => setMenuOpen(false)}>
+                    New project
+                  </Link>
                   <button onClick={handleLogout} className={s.dropdownItem} style={{ color: 'var(--accent)' }}>
                     Log out
                   </button>

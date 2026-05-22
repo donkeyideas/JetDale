@@ -106,3 +106,51 @@ input, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+/* ============================================================
+   Responsive — retrofits mobile support onto the inline-styled
+   app. Inline styles can't carry media queries, so these global
+   rules adapt fixed grids/rows/spacing on small screens.
+   ============================================================ */
+
+/* Never allow horizontal scrolling. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+svg { max-width: 100%; }
+
+/* Tablet and below */
+@media (max-width: 900px) {
+  .container { padding: 0 20px; }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  html, body { font-size: 15px; }
+  .container { padding: 0 16px; }
+
+  /* Collapse inline multi-column grids to a single column. */
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Let inline flex rows wrap instead of overflowing the viewport. */
+  [style*="display: flex"],
+  [style*="display:flex"] {
+    flex-wrap: wrap;
+  }
+
+  /* Tame oversized fixed horizontal padding on cards/sections. */
+  [style*="padding: 48px"],
+  [style*="padding: 64px"],
+  [style*="padding: 80px"] {
+    padding: 24px !important;
+  }
+}

@@ -8,6 +8,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import s from './layout.module.css';
 
 const NAV_TABS = [
@@ -24,6 +25,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className={s.page}>
@@ -51,7 +53,37 @@ export default function MarketingLayout({
             <Link href="/login" className={s.navLogin}>Log in</Link>
             <Link href="/start" className={s.navCta}>Start a Project</Link>
           </div>
+
+          <button
+            type="button"
+            className={s.hamburger}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span /><span /><span />
+          </button>
         </div>
+
+        {menuOpen && (
+          <div className={s.mobileMenu}>
+            {NAV_TABS.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={s.mobileMenuItem}
+                onClick={() => setMenuOpen(false)}
+              >
+                {tab.label}
+              </Link>
+            ))}
+            <Link href="/login" className={s.mobileMenuItem} onClick={() => setMenuOpen(false)}>
+              Log in
+            </Link>
+            <Link href="/start" className={s.mobileMenuCta} onClick={() => setMenuOpen(false)}>
+              Start a Project
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* ======== CONTENT ======== */}
