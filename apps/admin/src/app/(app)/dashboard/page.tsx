@@ -191,11 +191,29 @@ export default function DashboardPage() {
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper)'; }}
             >
-              <div>
-                <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 26, fontWeight: 600, letterSpacing: '-.03em' }}>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  title={p.name}
+                  style={{
+                    fontFamily: "'Bricolage Grotesque', sans-serif",
+                    fontSize: 26, fontWeight: 600, letterSpacing: '-.03em',
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {p.name}
                 </div>
-                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--muted)', marginTop: 6 }}>
+                <div
+                  title={p.archetypeName}
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 10, letterSpacing: '.12em',
+                    textTransform: 'uppercase', color: 'var(--muted)',
+                    marginTop: 6,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}
+                >
                   {p.archetypeName}
                 </div>
               </div>

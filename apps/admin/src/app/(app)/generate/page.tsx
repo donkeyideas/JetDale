@@ -207,10 +207,15 @@ function GenerateContent() {
         {done ? 'Generation complete' : 'Generating your plan'}
       </div>
 
-      <h1 style={{
-        fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 'clamp(28px, 4vw, 44px)',
-        fontWeight: 600, letterSpacing: '-.035em', lineHeight: 1.1, marginBottom: 8,
-      }}>
+      <h1
+        title={project?.name || undefined}
+        style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 'clamp(28px, 4vw, 44px)',
+          fontWeight: 600, letterSpacing: '-.035em', lineHeight: 1.1, marginBottom: 8,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden', wordBreak: 'break-word',
+        }}
+      >
         {project?.name || 'Your project'}
       </h1>
       <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 32 }}>
