@@ -29,6 +29,26 @@ function createSpeechRecognition(): any | null {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/**
+ * Derive a short, sensible project name from the spark answer.
+ * Voice-dictated sparks can be paragraph-length; this trims common
+ * filler prefixes, keeps the first sentence, and caps to ~60 chars.
+ */
+function deriveProjectName(spark: string | undefined): string {
+  if (!spark || !spark.trim()) return 'Untitled project';
+  let s = spark.trim();
+  s = s.replace(
+    /^(?:so\s+|um+\s+|uh+\s+|i'?d?\s*(?:want|like|love|wanted)\s*to\s*(?:build|create|make|launch|start)\s*(?:an?\s+|the\s+)?)/i,
+    '',
+  );
+  const first = s.split(/[.!?\n]+/)[0];
+  if (first && first.trim().length > 0) s = first.trim();
+  const MAX = 60;
+  if (s.length > MAX) s = s.slice(0, MAX - 1).trimEnd() + '…';
+  if (s.length > 0) s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s || 'Untitled project';
+}
+
 // --------------- Component ---------------
 
 export default function NewProjectPage() {
@@ -81,7 +101,7 @@ export default function NewProjectPage() {
     const project: JetdaleProject = {
       id,
       userId,
-      name: answers.spark || 'Untitled project',
+      name: deriveProjectName(answers.spark),
       createdAt: new Date().toISOString(),
       archetypeName: inferArchetype(answers),
       discoveryAnswers: { ...answers },

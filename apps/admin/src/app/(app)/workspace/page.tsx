@@ -11,7 +11,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { getProjectForUser, saveProject, addChatMessage, updateProjectArtifact, updateProjectMilestones, answersToPromptFormat, type JetdaleProject, type ArtifactData, type Milestone } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { loadProjectMerged, syncArtifactToSupabase, syncChatMessageToSupabase } from '@/lib/supabase-storage';
+import { loadProjectMerged, syncArtifactToSupabase, syncChatMessageToSupabase, syncProjectToSupabase } from '@/lib/supabase-storage';
 import { markdownToHtml } from '@/lib/markdown';
 import type { ChatMessage } from '@jetdale/shared';
 
@@ -435,6 +435,29 @@ function WorkspaceContent() {
   const activeData = project.artifacts[activeArtifact];
   const artifactHtml = activeData?.status === 'ready' ? markdownToHtml(activeData.contentMarkdown) : '';
 
+  // Voice-dictated answers can be very long. Truncate for display so the
+  // workspace stays usable; the full text is preserved in storage and the
+  // tooltip / Rename action.
+  const displayName = project.name.length > 70
+    ? project.name.slice(0, 69).trimEnd() + '…'
+    : project.name;
+  const audienceRaw = (project.discoveryAnswers.audience || '').trim();
+  const displaySub = audienceRaw.length > 60
+    ? audienceRaw.slice(0, 59).trimEnd() + '…'
+    : audienceRaw;
+
+  async function handleRename() {
+    if (!project) return;
+    const next = window.prompt('Project name:', project.name);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === project.name) return;
+    const updated = { ...project, name: trimmed };
+    setProject(updated);
+    saveProject(updated);
+    if (userId) syncProjectToSupabase(updated).catch(() => {});
+  }
+
   return (
     <div className="ws-root" style={{ height: 'calc(100vh - 65px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: 1500, margin: '0 auto', padding: '24px 32px 0' }}>
       {/* Header */}
@@ -447,16 +470,45 @@ function WorkspaceContent() {
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>
             <Link href="/dashboard" style={{ color: 'var(--muted)', textDecoration: 'none' }}>Dashboard</Link>
             {' / Projects / '}
-            <span style={{ color: 'var(--ink)' }}>{project.name}</span>
+            <span
+              style={{
+                color: 'var(--ink)',
+                display: 'inline-block',
+                maxWidth: 'min(40ch, 60vw)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                verticalAlign: 'bottom',
+              }}
+              title={project.name}
+            >
+              {project.name}
+            </span>
           </div>
-          <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 600, letterSpacing: '-.035em' }}>
-            {project.name}
-            {project.discoveryAnswers.audience && (
-              <span style={{ color: 'var(--muted)', fontWeight: 300 }}> — {project.discoveryAnswers.audience.toLowerCase()}</span>
+          <h1
+            title={project.name}
+            style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 'clamp(28px, 4vw, 48px)',
+              fontWeight: 600,
+              letterSpacing: '-.035em',
+              wordBreak: 'break-word',
+              lineHeight: 1.05,
+            }}
+          >
+            {displayName}
+            {displaySub && (
+              <span style={{ color: 'var(--muted)', fontWeight: 300 }}> — {displaySub.toLowerCase()}</span>
             )}
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            onClick={handleRename}
+            style={{ padding: '10px 18px', border: '1px solid var(--rule)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--paper)', cursor: 'pointer', transition: 'all .15s' }}
+          >
+            Rename
+          </button>
           <button
             onClick={handleShare}
             style={{ padding: '10px 18px', border: '1px solid var(--rule)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--paper)', cursor: 'pointer', transition: 'all .15s' }}
