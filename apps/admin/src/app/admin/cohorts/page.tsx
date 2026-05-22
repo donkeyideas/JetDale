@@ -119,6 +119,7 @@ export default function CohortsPage() {
       ) : (
         <div className={s.card}>
           <div className={s.sectionTitle}>Cohort Retention Heatmap</div>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table className={d.cohortTable}>
             <thead>
               <tr>
@@ -144,6 +145,7 @@ export default function CohortsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </>

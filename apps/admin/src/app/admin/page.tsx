@@ -225,6 +225,7 @@ export default function DashboardPage() {
       <div className={s.card} style={{ marginBottom: 24 }}>
         <div className={s.sectionTitle}>Cohort Retention</div>
         {cohortMatrix.rows.length > 0 ? (
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table className={d.cohortTable}>
             <thead>
               <tr>
@@ -245,6 +246,7 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className={s.chartPlaceholder}>No cohort data yet — retention tracking begins after users return</div>
         )}

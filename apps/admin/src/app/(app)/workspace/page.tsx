@@ -436,7 +436,7 @@ function WorkspaceContent() {
   const artifactHtml = activeData?.status === 'ready' ? markdownToHtml(activeData.contentMarkdown) : '';
 
   return (
-    <div style={{ height: 'calc(100vh - 65px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: 1500, margin: '0 auto', padding: '24px 32px 0' }}>
+    <div className="ws-root" style={{ height: 'calc(100vh - 65px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxWidth: 1500, margin: '0 auto', padding: '24px 32px 0' }}>
       {/* Header */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -480,10 +480,10 @@ function WorkspaceContent() {
       </div>
 
       {/* 3-column grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 360px', gap: 24, flex: 1, overflow: 'hidden', paddingTop: 20 }}>
+      <div className="ws-grid" style={{ display: 'grid', gridTemplateColumns: '220px 1fr 360px', gap: 24, flex: 1, overflow: 'hidden', paddingTop: 20 }}>
 
         {/* LEFT: Artifact sidebar */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
+        <aside className="ws-pane ws-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
           <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.15em', textTransform: 'uppercase', color: 'var(--muted)', padding: '12px 12px 8px' }}>Artifacts</div>
           {ARTIFACT_ORDER.map((type) => {
             const data = project.artifacts[type];
@@ -613,7 +613,7 @@ function WorkspaceContent() {
         </aside>
 
         {/* CENTER: Document viewer */}
-        <main ref={docViewerRef} style={{
+        <main ref={docViewerRef} className="ws-pane ws-doc" style={{
           background: 'var(--paper)', border: '1px solid var(--rule)',
           borderRadius: 6, padding: '40px 48px', overflowY: 'auto', minHeight: 0,
           display: 'flex', flexDirection: 'column',
@@ -715,7 +715,7 @@ function WorkspaceContent() {
         </main>
 
         {/* RIGHT: AI Chat */}
-        <aside style={{
+        <aside className="ws-pane ws-chat" style={{
           background: 'var(--ink)', color: 'var(--paper)', borderRadius: 6,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
@@ -824,6 +824,20 @@ function WorkspaceContent() {
         .chat-md table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
         .chat-md th { text-align: left; padding: 4px 8px; font-size: 10px; text-transform: uppercase; color: rgba(244,241,234,.5); border-bottom: 1px solid rgba(244,241,234,.15); }
         .chat-md td { padding: 4px 8px; border-bottom: 1px solid rgba(244,241,234,.08); color: rgba(244,241,234,.85); }
+
+        /* ---- Mobile: stack the editor panes into one scrollable column ---- */
+        @media (max-width: 700px) {
+          .ws-root { height: auto !important; overflow: visible !important; padding: 16px 16px 0 !important; }
+          .ws-grid { display: flex !important; flex-direction: column; gap: 16px !important; overflow: visible !important; }
+          .ws-pane { overflow: visible !important; }
+          .ws-sidebar { overflow-y: visible !important; }
+          .ws-doc { padding: 24px 20px !important; overflow-y: visible !important; }
+          .ws-chat { height: 70vh; overflow: hidden !important; }
+          .artifact-content h1 { font-size: 26px; }
+          .artifact-content h2 { font-size: 20px; }
+          .artifact-content blockquote { font-size: 18px; padding: 16px; }
+          .artifact-content table { display: block; overflow-x: auto; }
+        }
       `}</style>
     </div>
   );

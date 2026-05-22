@@ -98,6 +98,7 @@ export default function AiAnalyticsPage() {
           <div className={s.card}>
             <div className={s.sectionTitle}>Model Performance</div>
             {byModel.length > 0 ? (
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className={s.table}>
                 <thead>
                   <tr>
@@ -125,6 +126,7 @@ export default function AiAnalyticsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className={s.chartPlaceholder}>No model data available</div>
             )}

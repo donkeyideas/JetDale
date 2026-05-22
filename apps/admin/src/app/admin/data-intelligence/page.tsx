@@ -95,7 +95,7 @@ export default function DataIntelligencePage() {
             <div className={`${s.card} ${s.cardFeatured}`} style={{ textAlign: 'center', padding: '40px 24px' }}>
               <div className={s.cardTitle}>Platform Health</div>
               <div className={s.cardValue} style={{
-                fontSize: 72,
+                fontSize: 'clamp(48px, 12vw, 72px)',
                 color: scoreColor(score),
                 marginBottom: 12,
               }}>

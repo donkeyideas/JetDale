@@ -128,7 +128,7 @@ export default function UsersPage() {
       {loading ? (
         <div className={s.card}><div className={s.chartPlaceholder}>Loading users…</div></div>
       ) : (
-        <div className={u.tableWrap}>
+        <div className={u.tableWrap} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table className={s.table}>
             <thead>
               <tr>

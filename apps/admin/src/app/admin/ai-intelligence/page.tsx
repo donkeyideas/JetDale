@@ -120,6 +120,7 @@ export default function AiIntelligencePage() {
             <div className={s.card}>
               <div className={s.sectionTitle}>Provider Comparison</div>
               {byProvider.length > 0 ? (
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className={s.table}>
                   <thead>
                     <tr>
@@ -149,6 +150,7 @@ export default function AiIntelligencePage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <div className={s.chartPlaceholder}>No provider data available</div>
               )}
@@ -185,6 +187,7 @@ export default function AiIntelligencePage() {
             <div className={s.card}>
               <div className={s.sectionTitle}>Recent Events</div>
               {recent.length > 0 ? (
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className={s.table}>
                   <thead>
                     <tr>
@@ -216,6 +219,7 @@ export default function AiIntelligencePage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <div className={s.chartPlaceholder}>No recent events</div>
               )}

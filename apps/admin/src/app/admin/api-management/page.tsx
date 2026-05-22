@@ -332,7 +332,7 @@ export default function ApiManagementPage() {
           {(data?.model_stats ?? []).length > 0 && (
             <div className={s.card}>
               <div className={s.sectionTitle}>Usage by Model</div>
-              <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className={s.table}>
                   <thead>
                     <tr>

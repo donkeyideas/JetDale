@@ -108,7 +108,7 @@ export default function ProjectsPage() {
       {loading ? (
         <div className={s.card}><div className={s.chartPlaceholder}>Loading projects…</div></div>
       ) : (
-        <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', background: 'var(--paper)' }}>
+        <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: 'var(--paper)' }}>
           <table className={s.table}>
             <thead>
               <tr>
