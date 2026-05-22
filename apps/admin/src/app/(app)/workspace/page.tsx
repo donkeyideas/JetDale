@@ -74,6 +74,46 @@ const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
   pitch_deck: 'A concise slide-style summary you can show investors, partners, or collaborators.',
 };
 
+// ---- Jetdale review score ------------------------------------------
+
+type AxisScores = {
+  clarity: number;
+  feasibility: number;
+  market: number;
+  riskReadiness: number;
+  buildReadiness: number;
+};
+
+type ReviewScoreState = {
+  overall: number;
+  grade: string;
+  axes: AxisScores | null;
+  concernCount: number;
+  createdAt: string;
+};
+
+const AXIS_LIST: Array<{ key: keyof AxisScores; label: string }> = [
+  { key: 'clarity', label: 'Clarity' },
+  { key: 'feasibility', label: 'Feasibility' },
+  { key: 'market', label: 'Market' },
+  { key: 'riskReadiness', label: 'Risk Readiness' },
+  { key: 'buildReadiness', label: 'Build Readiness' },
+];
+
+function gradeColor(grade: string): string {
+  if (grade === 'A') return '#2E4A2C';
+  if (grade === 'B') return '#22c55e';
+  if (grade === 'C') return '#C9A227';
+  if (grade === 'D') return '#FF5B1F';
+  return '#C7321A';
+}
+
+function axisColor(value: number): string {
+  if (value >= 80) return '#22c55e';
+  if (value >= 60) return '#C9A227';
+  return '#FF5B1F';
+}
+
 /** Extract milestones from a roadmap markdown (looks for "Milestone:" lines or phase headers) */
 function extractMilestones(roadmapMd: string): Milestone[] {
   const milestones: Milestone[] = [];
@@ -162,15 +202,34 @@ function WorkspaceContent() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-send reality check prompt when set
+  // ---- Jetdale review score state ----
+  const [reviewScore, setReviewScore] = useState<ReviewScoreState | null>(null);
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [scoreLoading, setScoreLoading] = useState(false);
+
+  // Fetch the latest reality_check's score for this project.
   useEffect(() => {
-    if (realityCheckPending.current && chatInput) {
-      const prompt = chatInput;
-      realityCheckPending.current = false;
-      sendMessage(prompt);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatInput]);
+    if (!project?.id || !userId) return;
+    const supa = createSupabaseBrowserClient();
+    supa
+      .from('reality_checks')
+      .select('overall_score, letter_grade, axis_scores, concerns, created_at')
+      .eq('project_id', project.id)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data || data.overall_score == null) return;
+        setReviewScore({
+          overall: data.overall_score as number,
+          grade: (data.letter_grade as string) ?? 'F',
+          axes: (data.axis_scores as AxisScores) ?? null,
+          concernCount: Array.isArray(data.concerns) ? (data.concerns as unknown[]).length : 0,
+          createdAt: data.created_at as string,
+        });
+      });
+  }, [project?.id, userId]);
 
   async function sendMessage(overrideMessage?: string) {
     const msg = overrideMessage || chatInput;
@@ -283,14 +342,32 @@ function WorkspaceContent() {
     setTimeout(() => setShareLabel('Share'), 2000);
   }
 
-  // ---- Reality Check: send analysis prompt to AI chat ----
-  const realityCheckPending = useRef(false);
-
-  function handleRealityCheck() {
-    if (!project || streaming) return;
-    const prompt = `Give me a brutally honest reality check on this project. Analyze the discovery answers and all generated artifacts. Identify the top 3 risks, the biggest blind spots, what's missing from the plan, and whether the budget/timeline is realistic. Be direct — I want the hard truth, not encouragement.`;
-    setChatInput(prompt);
-    realityCheckPending.current = true;
+  // ---- Reality check: invoke the edge function, save score to DB ----
+  async function handleRealityCheck() {
+    if (!project || scoreLoading) return;
+    setScoreLoading(true);
+    try {
+      const supa = createSupabaseBrowserClient();
+      const { data, error } = await supa.functions.invoke('ai-reality-check', {
+        body: { projectId: project.id },
+      });
+      if (error) throw error;
+      if (data && typeof data.score === 'number') {
+        setReviewScore({
+          overall: data.score,
+          grade: data.grade ?? 'F',
+          axes: data.axes ?? null,
+          concernCount: Array.isArray(data.concerns) ? data.concerns.length : 0,
+          createdAt: data.createdAt ?? new Date().toISOString(),
+        });
+        setScoreOpen(true);
+      }
+    } catch (err) {
+      console.error('Reality check failed:', err);
+      const msg = err instanceof Error ? err.message : 'Could not run reality check.';
+      alert(msg);
+    }
+    setScoreLoading(false);
   }
 
   // ---- Export to Claude Code: compile all artifacts into clean plain text ----
@@ -501,6 +578,36 @@ function WorkspaceContent() {
               <span style={{ color: 'var(--muted)', fontWeight: 300 }}> — {displaySub.toLowerCase()}</span>
             )}
           </h1>
+
+          {/* Jetdale review score chip */}
+          {reviewScore ? (
+            <button
+              type="button"
+              onClick={() => setScoreOpen((o) => !o)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+                marginTop: 12, padding: '6px 14px 6px 6px',
+                background: 'var(--paper-2)', border: '1px solid var(--rule)',
+                borderRadius: 999, cursor: 'pointer', fontSize: 13,
+              }}
+            >
+              <span style={{
+                width: 30, height: 30, borderRadius: '50%',
+                background: gradeColor(reviewScore.grade), color: '#fff',
+                display: 'inline-grid', placeItems: 'center',
+                fontWeight: 700, fontFamily: "'Bricolage Grotesque', sans-serif",
+              }}>{reviewScore.grade}</span>
+              <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
+                {reviewScore.overall}/100
+              </span>
+              <span style={{ color: 'var(--muted)' }}>Jetdale review</span>
+              <span style={{ color: 'var(--muted)', marginLeft: 2 }}>{scoreOpen ? '▲' : '▼'}</span>
+            </button>
+          ) : (
+            <div style={{ marginTop: 12, fontSize: 13, color: 'var(--muted)' }}>
+              No review score yet — click <strong>Reality check</strong> to get your Jetdale grade.
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button
@@ -517,10 +624,10 @@ function WorkspaceContent() {
           </button>
           <button
             onClick={handleRealityCheck}
-            disabled={streaming}
-            style={{ padding: '10px 18px', border: '1px solid var(--rule)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--paper)', cursor: streaming ? 'default' : 'pointer', opacity: streaming ? 0.5 : 1, transition: 'all .15s' }}
+            disabled={scoreLoading}
+            style={{ padding: '10px 18px', border: '1px solid var(--rule)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--paper)', cursor: scoreLoading ? 'default' : 'pointer', opacity: scoreLoading ? 0.5 : 1, transition: 'all .15s' }}
           >
-            Reality check
+            {scoreLoading ? 'Running…' : 'Reality check'}
           </button>
           <button
             onClick={handleExport}
@@ -530,6 +637,47 @@ function WorkspaceContent() {
           </button>
         </div>
       </div>
+
+      {/* Jetdale review score breakdown */}
+      {scoreOpen && reviewScore && reviewScore.axes && (
+        <div style={{
+          marginTop: 16, padding: 20,
+          border: '1px solid var(--rule)', borderRadius: 8,
+          background: 'var(--paper)', flexShrink: 0,
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+            {AXIS_LIST.map(({ key, label }) => {
+              const v = reviewScore.axes![key];
+              return (
+                <div key={key}>
+                  <div style={{
+                    fontFamily: "'Space Mono', monospace", fontSize: 10,
+                    letterSpacing: '.12em', textTransform: 'uppercase',
+                    color: 'var(--muted)',
+                  }}>{label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                    <div style={{ flex: 1, height: 6, background: 'var(--paper-3)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', width: v + '%',
+                        background: axisColor(v), borderRadius: 3,
+                        transition: 'width .4s ease',
+                      }} />
+                    </div>
+                    <span style={{
+                      fontFamily: "'Space Mono', monospace", fontWeight: 700,
+                      fontSize: 13, minWidth: 28, textAlign: 'right',
+                    }}>{v}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)' }}>
+            Derived from {reviewScore.concernCount} concern{reviewScore.concernCount === 1 ? '' : 's'} in the latest reality check
+            {reviewScore.createdAt ? ` (${new Date(reviewScore.createdAt).toLocaleString()})` : ''}.
+          </div>
+        </div>
+      )}
 
       {/* 3-column grid */}
       <div className="ws-grid" style={{ display: 'grid', gridTemplateColumns: '220px 1fr 360px', gap: 24, flex: 1, overflow: 'hidden', paddingTop: 20 }}>

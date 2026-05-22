@@ -221,6 +221,9 @@ Deno.serve(async (req) => {
     // Validate and sanitize the parsed output
     parsed = sanitizeOutput(parsed);
 
+    // Derive the Jetdale review score from the concerns.
+    const score = computeReviewScore(parsed.concerns);
+
     // ----------------------------------------------------------
     // 10. Persist to reality_checks table
     // ----------------------------------------------------------
@@ -233,6 +236,9 @@ Deno.serve(async (req) => {
         concerns: parsed.concerns,
         proposed_changes: parsed.proposed_changes,
         generation_cost_cents: aiResult.costCents,
+        overall_score: score.overall,
+        letter_grade: score.grade,
+        axis_scores: score.axes,
       })
       .select('id, created_at')
       .single();
@@ -287,6 +293,9 @@ Deno.serve(async (req) => {
       summary: parsed.summary,
       concerns: parsed.concerns,
       proposedChanges: parsed.proposed_changes,
+      score: score.overall,
+      grade: score.grade,
+      axes: score.axes,
       createdAt: realityCheck.created_at,
       meta: {
         model: 'deepseek-v4-flash',
@@ -478,4 +487,70 @@ function sanitizeOutput(output: RealityCheckOutput): RealityCheckOutput {
     concerns,
     proposed_changes: proposedChanges,
   };
+}
+
+// ============================================================
+// Compute the Jetdale review score from a list of concerns.
+// Each axis starts at 100; concerns deduct by severity. The
+// overall score is the unweighted mean, mapped to a letter grade.
+// ============================================================
+
+interface AxisScores {
+  clarity: number;
+  feasibility: number;
+  market: number;
+  riskReadiness: number;
+  buildReadiness: number;
+}
+
+interface ReviewScore {
+  overall: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  axes: AxisScores;
+}
+
+const AREA_TO_AXIS: Record<string, keyof AxisScores> = {
+  budget: 'feasibility',
+  timeline: 'feasibility',
+  team: 'feasibility',
+  scope: 'clarity',
+  market: 'market',
+  technical: 'buildReadiness',
+  legal: 'riskReadiness',
+};
+
+const SEVERITY_DEDUCTION: Record<string, number> = {
+  high: 15,
+  medium: 8,
+  low: 3,
+};
+
+function letterFromScore(score: number): ReviewScore['grade'] {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+function computeReviewScore(concerns: RealityCheckConcern[]): ReviewScore {
+  const axes: AxisScores = {
+    clarity: 100,
+    feasibility: 100,
+    market: 100,
+    riskReadiness: 100,
+    buildReadiness: 100,
+  };
+
+  for (const c of concerns) {
+    const axis = AREA_TO_AXIS[c.area] ?? 'riskReadiness';
+    const deduction = SEVERITY_DEDUCTION[c.severity] ?? 5;
+    axes[axis] = Math.max(0, axes[axis] - deduction);
+  }
+
+  const overall = Math.round(
+    (axes.clarity + axes.feasibility + axes.market + axes.riskReadiness + axes.buildReadiness) / 5,
+  );
+
+  return { overall, grade: letterFromScore(overall), axes };
 }
