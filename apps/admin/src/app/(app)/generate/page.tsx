@@ -110,6 +110,12 @@ function GenerateContent() {
 
           if (!res.ok) {
             const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+            // Plan limit reached — stop generating and tell the user.
+            if (res.status === 402) {
+              setStatuses((s) => ({ ...s, [type]: 'failed' }));
+              setError(err.error || 'You have reached your plan limit. Upgrade to generate more documents.');
+              break;
+            }
             console.error(`Failed to generate ${type}:`, err);
             setStatuses((s) => ({ ...s, [type]: 'failed' }));
             updateProjectArtifact(project!.id, type, {

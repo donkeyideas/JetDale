@@ -8,9 +8,30 @@
 import { NextRequest } from 'next/server';
 import { callDeepSeek } from '@/lib/deepseek';
 import { buildWorkspaceChatPrompt } from '@jetdale/shared';
+import { verifyUser, isErrorResponse } from '@/lib/stripe';
+import { getUserPlanTier, checkChatQuota, isStaff } from '@/lib/quota';
 
 export async function POST(req: NextRequest) {
+  // Require an authenticated user — this is a paid AI endpoint.
+  const user = await verifyUser(req);
+  if (isErrorResponse(user)) return user;
+
   try {
+    // Enforce the plan's daily chat-message quota (staff are exempt).
+    if (!(await isStaff(user.id))) {
+      const tier = await getUserPlanTier(user.id);
+      const quota = await checkChatQuota(user.id, tier);
+      if (!quota.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: `You've hit your ${tier} plan limit of ${quota.max} chat messages today. Upgrade for more.`,
+            code: 'quota_exceeded',
+          }),
+          { status: 429, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     const body = await req.json();
 
     const systemPrompt = buildWorkspaceChatPrompt({

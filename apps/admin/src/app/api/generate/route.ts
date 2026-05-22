@@ -6,6 +6,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callDeepSeek } from '@/lib/deepseek';
+import { verifyUser, isErrorResponse } from '@/lib/stripe';
+import {
+  getUserPlanTier,
+  checkArtifactQuota,
+  incrementArtifactQuota,
+  isStaff,
+} from '@/lib/quota';
 import {
   buildVisionPrompt,
   buildScopePrompt,
@@ -60,6 +67,10 @@ const DEEP_MODEL_TYPES = new Set([
 ]);
 
 export async function POST(req: NextRequest) {
+  // Require an authenticated user — this is a paid AI endpoint.
+  const user = await verifyUser(req);
+  if (isErrorResponse(user)) return user;
+
   try {
     const body = await req.json();
     const { artifactType, archetypeName, discoveryAnswers, existingArtifacts } = body;
@@ -67,6 +78,22 @@ export async function POST(req: NextRequest) {
     const builder = PROMPT_BUILDERS[artifactType];
     if (!builder) {
       return NextResponse.json({ error: `Unknown artifact type: ${artifactType}` }, { status: 400 });
+    }
+
+    // Enforce the plan's artifact quota (staff are exempt).
+    const staff = await isStaff(user.id);
+    if (!staff) {
+      const tier = await getUserPlanTier(user.id);
+      const quota = await checkArtifactQuota(user.id, tier);
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: `You've reached your ${tier} plan limit of ${quota.max} planning documents this month. Upgrade to generate all 17.`,
+            code: 'quota_exceeded',
+          },
+          { status: 402 },
+        );
+      }
     }
 
     const systemPrompt = builder({ archetypeName, discoveryAnswers, existingArtifacts });
@@ -95,6 +122,11 @@ export async function POST(req: NextRequest) {
     const banned = scanForBannedPhrases(contentMarkdown);
     if (banned.length > 0) {
       console.warn(`Banned phrases in ${artifactType}:`, banned);
+    }
+
+    // Count this generation against the user's monthly quota.
+    if (!staff) {
+      await incrementArtifactQuota(user.id);
     }
 
     return NextResponse.json({ contentMarkdown });

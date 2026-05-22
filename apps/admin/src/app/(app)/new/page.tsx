@@ -39,6 +39,8 @@ export default function NewProjectPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [showDone, setShowDone] = useState(false);
   const [error, setError] = useState('');
+  const [quotaMsg, setQuotaMsg] = useState('');
+  const [creating, setCreating] = useState(false);
 
   // Auth — user is already logged in (portal)
   const [userId, setUserId] = useState('');
@@ -52,7 +54,29 @@ export default function NewProjectPage() {
   }, [router]);
 
   async function createProjectAndRedirect() {
-    if (!userId) return;
+    if (!userId || creating) return;
+    setCreating(true);
+    setQuotaMsg('');
+
+    // Enforce the monthly project limit before creating. The
+    // enforce_project_quota DB trigger is the hard backstop.
+    try {
+      const res = await fetch('/api/projects/check');
+      if (res.ok) {
+        const q = await res.json();
+        if (!q.allowed) {
+          setQuotaMsg(
+            `Your ${q.tier} plan allows ${q.max} project${q.max === 1 ? '' : 's'} per month. ` +
+            `Upgrade your plan to start another.`,
+          );
+          setCreating(false);
+          return;
+        }
+      }
+    } catch {
+      // Network issue — fall through; the DB trigger still enforces the limit.
+    }
+
     const id = crypto.randomUUID();
     const project: JetdaleProject = {
       id,
@@ -65,9 +89,21 @@ export default function NewProjectPage() {
       artifacts: {},
       chatMessages: [],
     };
+    // Sync to Supabase first — if the project-quota trigger rejects it,
+    // surface the limit instead of redirecting into a generation flow.
+    const synced = await syncProjectToSupabase(project).catch(() => false);
+    if (!synced) {
+      const check = await fetch('/api/projects/check').then((r) => r.ok ? r.json() : null).catch(() => null);
+      if (check && !check.allowed) {
+        setQuotaMsg(
+          `Your ${check.tier} plan allows ${check.max} project${check.max === 1 ? '' : 's'} per month. ` +
+          `Upgrade your plan to start another.`,
+        );
+        setCreating(false);
+        return;
+      }
+    }
     saveProject(project);
-    // Await sync so navigation doesn't abort the request
-    await syncProjectToSupabase(project).catch(() => {});
     router.push(`/generate?projectId=${id}`);
   }
 
@@ -303,6 +339,17 @@ export default function NewProjectPage() {
               );
             })}
           </div>
+
+          {/* Plan limit notice */}
+          {quotaMsg && (
+            <p style={{
+              fontSize: 14, color: 'var(--accent)', fontWeight: 500, lineHeight: 1.5,
+              marginBottom: 20, padding: '12px 16px', background: 'rgba(255,91,31,.08)',
+              border: '1px solid rgba(255,91,31,.25)', borderRadius: 8,
+            }}>
+              {quotaMsg} <a href="/account" style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'underline' }}>Manage plan →</a>
+            </p>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
