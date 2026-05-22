@@ -235,7 +235,10 @@ Deno.serve(async (req) => {
         summary: parsed.summary,
         concerns: parsed.concerns,
         proposed_changes: parsed.proposed_changes,
-        generation_cost_cents: aiResult.costCents,
+        // generation_cost_cents is integer; aiResult.costCents keeps fractional
+        // precision (parseFloat(...toFixed(4))) per the cost-calc policy, so
+        // round at the storage boundary.
+        generation_cost_cents: Math.round(aiResult.costCents),
         overall_score: score.overall,
         letter_grade: score.grade,
         axis_scores: score.axes,
@@ -245,7 +248,16 @@ Deno.serve(async (req) => {
 
     if (insertErr) {
       console.error('Failed to insert reality check:', insertErr);
-      return errorResponse('Failed to save reality check', 500);
+      const parts = [
+        insertErr.message,
+        insertErr.code && `code=${insertErr.code}`,
+        insertErr.details && `details=${insertErr.details}`,
+        insertErr.hint && `hint=${insertErr.hint}`,
+      ].filter(Boolean);
+      return errorResponse(
+        `Failed to save reality check: ${parts.join('; ') || 'unknown DB error'}`,
+        500,
+      );
     }
 
     // ----------------------------------------------------------
