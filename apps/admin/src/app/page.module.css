@@ -532,9 +532,28 @@
   .section { padding: 80px 20px; }
   .flow { padding: 80px 0; }
   .flowInner { padding: 0 20px; }
+  .flowHeader { gap: 20px; margin-bottom: 48px; }
   .steps { grid-template-columns: 1fr; }
   .footerBrand { font-size: 48px; }
   .footerInner { flex-direction: column; align-items: start; gap: 24px; padding: 40px 20px 24px; }
   .footerMeta { padding: 0 20px 32px; flex-wrap: wrap; gap: 16px; }
   .heroCtas { flex-direction: column; }
+  .heroCtas .btnPrimary,
+  .heroCtas .btnGhost { justify-content: center; text-align: center; }
+  .heroMeta { gap: 28px; margin-top: 48px; }
+
+  /* Problem / deliverable cards: stack so the no-wrap tag can't
+     force the page wider than the viewport. */
+  .problemGrid { gap: 32px; }
+  .problemItem {
+    grid-template-columns: auto 1fr;
+    padding: 20px;
+    gap: 4px 14px;
+  }
+  .problemText { font-size: 17px; }
+  .problemTag {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 8px;
+  }
 }

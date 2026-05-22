@@ -113,10 +113,10 @@ input, textarea {
    rules adapt fixed grids/rows/spacing on small screens.
    ============================================================ */
 
-/* Never allow horizontal scrolling. */
-html, body {
+/* Clip stray horizontal overflow. Scoped to body only — putting
+   overflow-x on <html> breaks vertical scrolling on mobile. */
+body {
   overflow-x: hidden;
-  max-width: 100%;
 }
 
 img, video {
