@@ -2,48 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin, isErrorResponse } from '@/lib/admin-auth';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
 
+/**
+ * GET /api/admin/funnel
+ * Activation funnel — counts DISTINCT USERS who reached each stage.
+ * Counting raw rows (e.g. total projects) inflates stages past 100%;
+ * a funnel must measure how many signed-up users reached each step.
+ */
 export async function GET(req: NextRequest) {
   const auth = await verifyAdmin(req);
   if (isErrorResponse(auth)) return auth;
 
   const db = createSupabaseAdminClient();
 
-  // Try materialized view first — sum across all daily rows
-  const { data: funnelRows } = await db
-    .from('mv_activation_funnel')
-    .select('*');
+  const [profilesRes, projectsRes, discoveryRes, artifactsRes, exportsRes, paidRes] =
+    await Promise.all([
+      db.from('profiles').select('id', { count: 'exact', head: true }),
+      db.from('projects').select('user_id'),
+      db.from('discovery_sessions').select('user_id').eq('status', 'completed'),
+      db.from('artifacts').select('user_id'),
+      db.from('exports').select('user_id'),
+      db.from('subscriptions').select('user_id').neq('plan_tier', 'free').in('status', ['active', 'trialing']),
+    ]);
 
-  if (funnelRows && funnelRows.length > 0) {
-    const totals = {
-      signups: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.signups ?? 0), 0),
-      discovery_started: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.discovery_started ?? 0), 0),
-      discovery_completed: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.discovery_completed ?? 0), 0),
-      artifacts_generated: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.artifacts_generated ?? 0), 0),
-      exported: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.exported ?? 0), 0),
-      paid: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.paid ?? 0), 0),
-    };
-    return NextResponse.json(totals);
-  }
+  // Count distinct, non-null user_ids in a result set.
+  const distinctUsers = (rows: { user_id: string | null }[] | null) =>
+    new Set((rows ?? []).map((r) => r.user_id).filter(Boolean)).size;
 
-  // Fallback: compute from tables
-  const [signupsRes, projectsRes, discoveryRes, artifactsRes, exportsRes, paidRes] = await Promise.all([
-    db.from('profiles').select('id', { count: 'exact', head: true }),
-    db.from('projects').select('id', { count: 'exact', head: true }),
-    db.from('discovery_sessions').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-    db.from('artifacts').select('id', { count: 'exact', head: true }),
-    db.from('exports').select('id', { count: 'exact', head: true }),
-    db.from('subscriptions').select('id', { count: 'exact', head: true }).neq('plan_tier', 'free'),
-  ]);
-
-  const signups = signupsRes.count ?? 0;
-  const stages = {
-    signups,
-    discovery_started: projectsRes.count ?? 0,
-    discovery_completed: discoveryRes.count ?? 0,
-    artifacts_generated: artifactsRes.count ?? 0,
-    exported: exportsRes.count ?? 0,
-    paid: paidRes.count ?? 0,
-  };
-
-  return NextResponse.json(stages);
+  return NextResponse.json({
+    signups: profilesRes.count ?? 0,
+    discovery_started: distinctUsers(projectsRes.data),
+    discovery_completed: distinctUsers(discoveryRes.data),
+    artifacts_generated: distinctUsers(artifactsRes.data),
+    exported: distinctUsers(exportsRes.data),
+    paid: distinctUsers(paidRes.data),
+  });
 }

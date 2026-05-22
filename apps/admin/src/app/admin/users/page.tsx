@@ -5,6 +5,7 @@ import { adminFetch } from '@/lib/admin-fetch';
 import type { AdminUserRow, PaginatedResponse } from '@/lib/admin-types';
 import s from '../admin.module.css';
 import u from './users.module.css';
+import UserDetailModal from './UserDetailModal';
 
 const PLAN_FILTERS = ['all', 'pro', 'team', 'free', 'trial', 'churned'] as const;
 
@@ -32,6 +33,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [plan, setPlan] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchData = useCallback(async () => {
@@ -51,6 +53,30 @@ export default function UsersPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  function exportCsv() {
+    const headers = ['Name', 'Email', 'Plan', 'Status', 'Projects', 'MRR ($)', 'Joined'];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [
+      headers.join(','),
+      ...data.map((u) => [
+        u.full_name ?? '',
+        u.email,
+        u.plan_tier ?? 'free',
+        u.subscription_status ?? '',
+        u.project_count,
+        (u.mrr_cents / 100).toFixed(2),
+        new Date(u.created_at).toLocaleDateString(),
+      ].map(escape).join(',')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jetdale-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleSearch(val: string) {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -69,7 +95,7 @@ export default function UsersPage() {
           <span className={u.userCount}>{total.toLocaleString()} total</span>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Export CSV</button>
+          <button type="button" className={s.btnOutline} onClick={exportCsv}>Export CSV</button>
         </div>
       </header>
 
@@ -120,7 +146,11 @@ export default function UsersPage() {
                   ? user.full_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
                   : user.email.slice(0, 2).toUpperCase();
                 return (
-                  <tr key={user.id}>
+                  <tr
+                    key={user.id}
+                    onClick={() => setSelectedUserId(user.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <td>
                       <div className={s.userCell}>
                         <div className={s.tableAvatar}>{initials}</div>
@@ -157,6 +187,10 @@ export default function UsersPage() {
             <button className={s.pageBtn} disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>&rsaquo;</button>
           </div>
         </div>
+      )}
+
+      {selectedUserId && (
+        <UserDetailModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
       )}
     </>
   );

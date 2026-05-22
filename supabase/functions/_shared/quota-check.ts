@@ -81,7 +81,7 @@ export async function checkQuota(
   const quotaMap: Record<CheckableLimit, number> = {
     projectsPerMonth: quota.projects_created,
     artifactsPerProject: quota.artifacts_generated,
-    realityChecksPerMonth: quota.discoveries_completed, // overloaded for now
+    realityChecksPerMonth: quota.reality_checks_completed ?? 0,
     exportsPerMonth: quota.exports_run,
     voiceMinutesPerMonth: quota.voice_minutes_used,
     chatMessagesPerDay: 0, // checked differently via chat_messages count
@@ -110,6 +110,7 @@ export async function incrementQuota(
   field:
     | 'projects_created'
     | 'discoveries_completed'
+    | 'reality_checks_completed'
     | 'artifacts_generated'
     | 'exports_run',
   amount: number = 1,

@@ -3,9 +3,18 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AuditLogRow, PaginatedResponse } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 const SEVERITIES = ['', 'info', 'warning', 'critical'] as const;
+
+/** Show loopback addresses as "Localhost" instead of raw ::1 / 127.0.0.1. */
+function fmtIp(ip: string | null | undefined): string {
+  if (!ip) return '—';
+  if (ip === '::1' || ip === '127.0.0.1' || ip === '0:0:0:0:0:0:0:1') return 'Localhost';
+  return ip;
+}
 
 function severityClass(sev: string) {
   if (sev === 'info') return s.statusGreen;
@@ -80,7 +89,7 @@ export default function AuditPage() {
               </button>
             ))}
           </div>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('audit-log', data)}>Export</button>
         </div>
       </header>
 
@@ -108,13 +117,13 @@ export default function AuditPage() {
                       {entry.severity}
                     </span>
                   </td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
-                    {entry.action}
+                  <td style={{ fontSize: 12, fontWeight: 500 }}>
+                    {humanize(entry.action)}
                   </td>
                   <td style={{ fontSize: 13, fontWeight: 500 }}>{entry.actor_name ?? entry.actor_email ?? 'System'}</td>
                   <td style={{ fontSize: 12, color: 'var(--muted)' }}>{entry.target_id ?? '-'}</td>
-                  <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
-                    {entry.ip_address ?? '-'}
+                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    {fmtIp(entry.ip_address)}
                   </td>
                   <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
                     {new Date(entry.created_at).toLocaleString()}

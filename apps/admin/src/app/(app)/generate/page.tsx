@@ -8,9 +8,9 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef, Suspense } from 'react';
-import { getProjectForUser, updateProjectArtifact, updateProjectPhase, answersToPromptFormat } from '@/lib/storage';
+import { getProjectForUser, saveProject, updateProjectArtifact, updateProjectPhase, answersToPromptFormat } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { syncProjectToSupabase, syncArtifactToSupabase } from '@/lib/supabase-storage';
+import { loadProjectMerged, syncProjectToSupabase, syncArtifactToSupabase } from '@/lib/supabase-storage';
 import type { JetdaleProject, ArtifactData } from '@/lib/storage';
 
 // Generation order — vision first so later artifacts can reference it
@@ -47,21 +47,26 @@ function GenerateContent() {
   // Load project (verify ownership)
   useEffect(() => {
     if (!projectId) return;
-    createSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+    createSupabaseBrowserClient().auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-      setUserId(data.user.id);
-      const p = getProjectForUser(projectId, data.user.id);
-      if (p) {
-        setProject(p);
-        const initial: Record<string, ArtifactStatus> = {};
-        for (const type of GENERATION_ORDER) {
-          const existing = p.artifacts[type];
-          initial[type] = existing?.status === 'ready' ? 'ready' : 'waiting';
-        }
-        setStatuses(initial);
-        // Background: ensure project row exists in Supabase
-        syncProjectToSupabase(p).catch(() => {});
+      const uid = data.user.id;
+      setUserId(uid);
+
+      // Supabase merged with localStorage — recovers any content that only
+      // exists locally (heading-only stubs in Supabase get filled from local).
+      const p = await loadProjectMerged(projectId, uid);
+      if (!p) return;
+      saveProject(p); // cache merged result for offline
+
+      setProject(p);
+      const initial: Record<string, ArtifactStatus> = {};
+      for (const type of GENERATION_ORDER) {
+        const existing = p.artifacts[type];
+        initial[type] = existing?.status === 'ready' ? 'ready' : 'waiting';
       }
+      setStatuses(initial);
+      // Background: ensure project row exists in Supabase
+      syncProjectToSupabase(p).catch(() => {});
     });
   }, [projectId]);
 
@@ -139,8 +144,11 @@ function GenerateContent() {
         }
       }
 
-      // All done
+      // All done — update phase locally AND sync to Supabase so the dashboard
+      // routes future clicks to /workspace instead of back to this summary page.
       updateProjectPhase(project!.id, 'refine');
+      const updated = { ...project!, phase: 'refine' as const };
+      syncProjectToSupabase(updated).catch(() => {});
       setDone(true);
     }
 
@@ -157,7 +165,7 @@ function GenerateContent() {
   }
 
   const readyCount = Object.values(statuses).filter((s) => s === 'ready').length;
-  const pct = Math.round((readyCount / GENERATION_ORDER.length) * 100);
+  const pct = Math.min(100, Math.round((readyCount / GENERATION_ORDER.length) * 100));
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '60px 32px' }}>

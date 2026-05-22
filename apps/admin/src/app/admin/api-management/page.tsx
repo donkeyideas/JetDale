@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { ApiConfig } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from '../admin.module.css';
 
 interface ApiManagementData {
@@ -344,8 +345,8 @@ export default function ApiManagementPage() {
                   <tbody>
                     {(data?.model_stats ?? []).map((ms) => (
                       <tr key={ms.model}>
-                        <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, fontWeight: 600 }}>
-                          {ms.model}
+                        <td style={{ fontSize: 12, fontWeight: 600 }}>
+                          {humanize(ms.model)}
                         </td>
                         <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 12 }}>
                           {ms.count.toLocaleString()}

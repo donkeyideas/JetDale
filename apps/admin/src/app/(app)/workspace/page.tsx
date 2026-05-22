@@ -9,9 +9,9 @@
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, Suspense } from 'react';
-import { getProjectForUser, addChatMessage, updateProjectArtifact, updateProjectMilestones, answersToPromptFormat, type JetdaleProject, type ArtifactData, type Milestone } from '@/lib/storage';
+import { getProjectForUser, saveProject, addChatMessage, updateProjectArtifact, updateProjectMilestones, answersToPromptFormat, type JetdaleProject, type ArtifactData, type Milestone } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { fullSyncToSupabase, syncArtifactToSupabase, syncChatMessageToSupabase } from '@/lib/supabase-storage';
+import { loadProjectMerged, syncArtifactToSupabase, syncChatMessageToSupabase } from '@/lib/supabase-storage';
 import { markdownToHtml } from '@/lib/markdown';
 import type { ChatMessage } from '@jetdale/shared';
 
@@ -51,6 +51,27 @@ const ARTIFACT_LABELS: Record<string, string> = {
   success_metrics: 'Success metrics', budget: 'Budget', risk_register: 'Risk register',
   go_to_market: 'Go-to-Market', decision_log: 'Decision log',
   pre_mortem: 'Pre-mortem', pitch_deck: 'Pitch deck',
+};
+
+// Plain-language explanation of what each artifact is, shown at the top of the viewer.
+const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
+  vision: 'The big-picture statement of what you are building, who it is for, and why it matters.',
+  scope: 'What is in and out of the first version — the features you will build and the ones you will skip.',
+  personas: 'Profiles of your target users — their goals, frustrations, and what would make them choose your product.',
+  competitive_analysis: 'A look at existing alternatives and where your product fits among them.',
+  user_journey: 'The step-by-step path a user takes through your product, from first contact to ongoing use.',
+  roadmap: 'A phased timeline showing what gets built and when, broken into milestones.',
+  tech_stack: 'The recommended tools, frameworks, and services to build the product.',
+  architecture_overview: 'A high-level map of how the system’s pieces fit together and talk to each other.',
+  wireframes: 'Low-detail sketches of the key screens and how users move between them.',
+  raci_matrix: 'A responsibility chart for each task. R = Responsible (does the work), A = Accountable (owns the outcome), C = Consulted (gives input), I = Informed (kept in the loop).',
+  success_metrics: 'The numbers that tell you whether the product is working — with targets and how to measure them.',
+  budget: 'An estimate of what it will cost to build and run the first version.',
+  risk_register: 'The things most likely to go wrong, how serious each is, and how to reduce them.',
+  go_to_market: 'The plan for how you will reach users and get your first customers.',
+  decision_log: 'A record of the key choices made, the options considered, and why each call was made.',
+  pre_mortem: 'An exercise that imagines the project has failed, then works backward to find what caused it.',
+  pitch_deck: 'A concise slide-style summary you can show investors, partners, or collaborators.',
 };
 
 /** Extract milestones from a roadmap markdown (looks for "Milestone:" lines or phase headers) */
@@ -98,16 +119,27 @@ function WorkspaceContent() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [newMilestone, setNewMilestone] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const greetingSent = useRef(false);
+  const docViewerRef = useRef<HTMLElement>(null);
+
+  // Scroll the document viewer back to the top when switching artifacts
+  useEffect(() => {
+    docViewerRef.current?.scrollTo({ top: 0 });
+  }, [activeArtifact]);
 
   // Load project (verify ownership)
   useEffect(() => {
     if (!projectId) { router.push('/dashboard'); return; }
-    createSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+    createSupabaseBrowserClient().auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/dashboard'); return; }
-      setUserId(data.user.id);
-      const p = getProjectForUser(projectId, data.user.id);
+      const uid = data.user.id;
+      setUserId(uid);
+
+      // Supabase merged with localStorage — recovers any content that only
+      // exists locally (heading-only stubs in Supabase get filled from local).
+      const p = await loadProjectMerged(projectId, uid);
       if (!p) { router.push('/dashboard'); return; }
+      saveProject(p); // cache merged result for offline
+
       setProject(p);
       setMessages(p.chatMessages || []);
       const firstReady = [...ARTIFACT_ORDER, ...TOOL_ARTIFACTS].find((t) => p.artifacts[t]?.status === 'ready');
@@ -122,8 +154,6 @@ function WorkspaceContent() {
           updateProjectMilestones(p.id, extracted);
         }
       }
-      // Background: sync full project to Supabase
-      fullSyncToSupabase(p).catch(() => {});
     });
   }, [projectId, router]);
 
@@ -131,18 +161,6 @@ function WorkspaceContent() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Proactive AI greeting on first workspace visit
-  useEffect(() => {
-    if (project && messages.length === 0 && !greetingSent.current) {
-      greetingSent.current = true;
-      const readyCount = [...ARTIFACT_ORDER, ...TOOL_ARTIFACTS].filter((t) => project.artifacts[t]?.status === 'ready').length;
-      if (readyCount > 0) {
-        sendMessage(`I just opened my workspace for "${project.name}". Give me a quick status check — what looks strong in my plan, what needs attention first, and one specific thing I should improve. Be specific to my project.`);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project]);
 
   // Auto-send reality check prompt when set
   useEffect(() => {
@@ -595,7 +613,7 @@ function WorkspaceContent() {
         </aside>
 
         {/* CENTER: Document viewer */}
-        <main style={{
+        <main ref={docViewerRef} style={{
           background: 'var(--paper)', border: '1px solid var(--rule)',
           borderRadius: 6, padding: '40px 48px', overflowY: 'auto', minHeight: 0,
           display: 'flex', flexDirection: 'column',
@@ -654,6 +672,22 @@ function WorkspaceContent() {
                     }}>{regenerating ? 'Regenerating...' : 'Regenerate'}</button>
                   </div>
                 </div>
+                {ARTIFACT_DESCRIPTIONS[activeArtifact] && (
+                  <div style={{
+                    background: 'var(--paper-2)', border: '1px solid var(--paper-3)',
+                    borderRadius: 6, padding: '12px 16px', marginBottom: 28, flexShrink: 0,
+                    fontSize: 13, lineHeight: 1.6, color: 'var(--muted)',
+                  }}>
+                    <span style={{
+                      fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.12em',
+                      textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 700,
+                      marginRight: 8,
+                    }}>
+                      What this is
+                    </span>
+                    {ARTIFACT_DESCRIPTIONS[activeArtifact]}
+                  </div>
+                )}
                 <div
                   className="artifact-content"
                   dangerouslySetInnerHTML={{ __html: artifactHtml }}

@@ -82,12 +82,12 @@ export default function HomePage() {
             Jetdale turns a one-sentence idea into a world-class build plan — vision, scope, roadmap, mockups, risks, and AI-ready prompts. Ship the right thing, not the first thing.
           </p>
           <div className={s.heroStat}>
-            <div className={s.heroStatNum}>47</div>
-            <div className={s.heroStatLabel}>Industry Archetypes</div>
+            <div className={s.heroStatNum}>5</div>
+            <div className={s.heroStatLabel}>Launch Archetypes</div>
           </div>
           <div className={s.heroStat}>
-            <div className={s.heroStatNum}>12</div>
-            <div className={s.heroStatLabel}>Artifacts Generated</div>
+            <div className={s.heroStatNum}>17</div>
+            <div className={s.heroStatLabel}>Planning Documents</div>
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export default function HomePage() {
           <Link href="/start" className={s.btnPrimary}>
             Start your project <span className={s.arrow}>&rarr;</span>
           </Link>
-          <button className={s.btnGhost}>Watch the 90s demo</button>
+          <Link href="/how-it-works" className={s.btnGhost}>See how it works</Link>
         </div>
       </section>
 

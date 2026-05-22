@@ -41,18 +41,9 @@
 .logoMark {
   width: 28px;
   height: 28px;
-  background: var(--ink);
-  position: relative;
-  border-radius: 2px;
+  background: url('/logo.png') center / contain no-repeat;
   flex-shrink: 0;
 }
-.logoMark::before, .logoMark::after {
-  content: '';
-  position: absolute;
-  background: var(--accent);
-}
-.logoMark::before { top: 6px; left: 6px; width: 16px; height: 2px; }
-.logoMark::after { top: 10px; left: 6px; width: 10px; height: 2px; }
 
 .navTabs {
   display: flex;

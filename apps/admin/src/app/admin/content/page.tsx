@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { SiteContentRow } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from '../admin.module.css';
 
 const PAGE_TABS = ['Homepage', 'Features', 'Pricing', 'Use Cases', 'How It Works'] as const;
@@ -27,7 +28,7 @@ function ContentPreview({ content }: { content: Record<string, unknown> }) {
     }}>
       {Object.entries(content).map(([key, value]) => {
         if (value === null || value === undefined) return null;
-        const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const label = humanize(key);
 
         if (typeof value === 'string') {
           if (/<[a-z][\s\S]*>/i.test(value)) {
@@ -76,7 +77,7 @@ function ContentPreview({ content }: { content: Record<string, unknown> }) {
               <div style={{ padding: 12, background: 'var(--paper-2)', borderRadius: 4, fontSize: 13 }}>
                 {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
                   <div key={k} style={{ marginBottom: 4 }}>
-                    <strong>{k.replace(/_/g, ' ')}:</strong> {String(v)}
+                    <strong>{humanize(k)}:</strong> {String(v)}
                   </div>
                 ))}
               </div>
@@ -309,7 +310,7 @@ export default function ContentManagerPage() {
                       &#9654;
                     </span>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>
-                      {row.section}
+                      {humanize(row.section)}
                     </span>
                     <span style={{
                       fontFamily: "'Space Mono', monospace",

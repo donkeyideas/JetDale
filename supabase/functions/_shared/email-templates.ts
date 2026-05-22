@@ -124,7 +124,7 @@ export function discoveryAbandonedEmail(
       ${paragraph(`You started working on <strong>${projectName}</strong> but didn't finish the Discovery session. No worries — your progress is saved.`)}
       ${paragraph('Most great ideas need a second pass. Jump back in and let Jetdale help you shape it into something buildable.')}
       ${button('Continue Discovery', 'https://jetdale.com')}
-      ${paragraph('If you've decided to go a different direction, you can ignore this email.')}
+      ${paragraph('If you\'ve decided to go a different direction, you can ignore this email.')}
     `),
   };
 }

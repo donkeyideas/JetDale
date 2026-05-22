@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { FunnelTotals } from '@/lib/admin-types';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 const PERIODS = ['7d', '30d', '90d', 'all'] as const;
@@ -36,7 +37,9 @@ export default function FunnelPage() {
 
   const stages = STAGE_LABELS.map(({ key, label }) => {
     const count = data?.[key] ?? 0;
-    const pct = signups > 0 ? parseFloat(((count / signups) * 100).toFixed(1)) : 0;
+    const pct = signups > 0
+      ? Math.min(100, parseFloat(((count / signups) * 100).toFixed(1)))
+      : 0;
     return { label, count, pct };
   });
 
@@ -61,7 +64,7 @@ export default function FunnelPage() {
               </button>
             ))}
           </div>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('funnel', { period, ...data })}>Export</button>
         </div>
       </header>
 

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AiLogRow } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 const PERIODS = ['1h', '24h', '7d', '30d'] as const;
@@ -63,7 +65,7 @@ export default function AiLogsPage() {
               </button>
             ))}
           </div>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('ai-logs', res)}>Export</button>
         </div>
       </header>
 
@@ -114,8 +116,8 @@ export default function AiLogsPage() {
                     </td>
                     <td style={{ fontSize: 12 }}>{log.user_email ?? '-'}</td>
                     <td style={{ fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.project_name ?? '-'}</td>
-                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>{log.event_type}</td>
-                    <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>{log.model}</td>
+                    <td style={{ fontSize: 12 }}>{humanize(log.event_type)}</td>
+                    <td style={{ fontSize: 12 }}>{humanize(log.model)}</td>
                     <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>{(log.prompt_tokens + log.completion_tokens).toLocaleString()}</td>
                     <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>{log.latency_ms ? `${(log.latency_ms / 1000).toFixed(1)}s` : '-'}</td>
                     <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>${(log.cost_cents / 100).toFixed(2)}</td>

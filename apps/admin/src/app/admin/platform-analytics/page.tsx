@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { PlatformAnalyticsData } from '@/lib/admin-types';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 function fmtDollars(cents: number) {
@@ -33,7 +34,7 @@ export default function PlatformAnalyticsPage() {
           <h1 className={s.pageTitle}>Platform Analytics</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Download Report</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('platform-analytics', data)}>Download Report</button>
         </div>
       </header>
 
@@ -41,7 +42,7 @@ export default function PlatformAnalyticsPage() {
         <div className={s.card}><div className={s.chartPlaceholder}>Loading platform analytics...</div></div>
       ) : (
         <>
-          <div className={s.kpiGrid}>
+          <div className={s.kpiGrid} style={{ marginBottom: 24 }}>
             <div className={`${s.card} ${s.cardFeatured}`}>
               <div className={s.cardTitle}>MRR</div>
               <div className={s.cardValue}>{fmtDollars(data?.kpis.mrr_cents ?? 0)}</div>
@@ -60,7 +61,7 @@ export default function PlatformAnalyticsPage() {
             </div>
           </div>
 
-          <div className={s.kpiGrid}>
+          <div className={s.kpiGrid} style={{ marginBottom: 24 }}>
             <div className={s.card}>
               <div className={s.cardTitle}>Total Customers</div>
               <div className={s.cardValue}>{(data?.kpis.total_customers ?? 0).toLocaleString()}</div>
@@ -89,7 +90,7 @@ export default function PlatformAnalyticsPage() {
             </div>
           </div>
 
-          <div className={s.card}>
+          <div className={s.card} style={{ marginBottom: 24 }}>
             <div className={s.sectionTitle}>Revenue by Plan</div>
             {planDist.map((p) => (
               <div key={p.plan} className={s.hBarRow}>
@@ -105,9 +106,9 @@ export default function PlatformAnalyticsPage() {
             )}
           </div>
 
-          <div className={s.card}>
+          <div className={s.card} style={{ marginBottom: 24 }}>
             <div className={s.sectionTitle}>Platform Engagement</div>
-            <div className={s.kpiGrid}>
+            <div className={s.kpiGrid} style={{ marginTop: 16 }}>
               <div className={s.card}>
                 <div className={s.cardTitle}>Projects</div>
                 <div className={s.cardValue}>{engagement.projects.toLocaleString()}</div>

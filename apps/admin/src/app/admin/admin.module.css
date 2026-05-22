@@ -26,6 +26,9 @@
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: 'Space Mono', monospace;
   font-size: 10px;
   font-weight: 700;
@@ -35,6 +38,13 @@
   padding-bottom: 16px;
   border-bottom: 1px solid var(--accent);
   margin-bottom: 28px;
+}
+.brand::before {
+  content: '';
+  width: 26px;
+  height: 26px;
+  background: url('/logo.png') center / contain no-repeat;
+  flex-shrink: 0;
 }
 
 .sideSection {
@@ -868,6 +878,8 @@
 .filterGroup {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .filterPill {

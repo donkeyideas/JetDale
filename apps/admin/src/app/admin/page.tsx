@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { DashboardKPIs, FunnelTotals, CohortRow, ActivityItem } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from './admin.module.css';
 import d from './dashboard.module.css';
 
@@ -73,14 +74,19 @@ function buildCohortMatrix(data: CohortRow[]) {
   const headers = Array.from({ length: maxPeriods }, (_, i) => `M${i}`);
 
   const rows = months.map((month) => {
-    const entries = grouped[month].sort((a, b) => a.activity_month.localeCompare(b.activity_month));
+    const entries = grouped[month].sort(
+      (a, b) => (a.activity_month ?? '').localeCompare(b.activity_month ?? ''),
+    );
     const size = entries[0]?.cohort_size ?? 0;
-    const values = Array.from({ length: maxPeriods }, (_, i) => {
+    const values = Array.from({ length: maxPeriods }, (_, i): number | null => {
       const e = entries[i];
-      if (!e) return null;
-      return size > 0 ? Math.round((e.active_users / size) * 100) : null;
+      if (!e || size <= 0 || e.active_users == null) return null;
+      return Math.round((e.active_users / size) * 100);
     });
-    const label = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const dt = new Date(month);
+    const label = Number.isNaN(dt.getTime())
+      ? 'Unknown'
+      : dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     return { label, values };
   });
   return { headers, rows };
@@ -130,13 +136,17 @@ export default function DashboardPage() {
 
   // Funnel stages — always show (API now always returns funnel data)
   const funnelSignups = funnel?.signups ?? 0;
+  const funnelPct = (count: number) =>
+    funnelSignups > 0
+      ? Math.min(100, parseFloat(((count / funnelSignups) * 100).toFixed(1)))
+      : 0;
   const funnelStages = [
     { label: 'Signed Up', count: funnel?.signups ?? 0, pct: funnelSignups > 0 ? 100 : 0 },
-    { label: 'Started Project', count: funnel?.discovery_started ?? 0, pct: funnelSignups ? parseFloat((((funnel?.discovery_started ?? 0) / funnelSignups) * 100).toFixed(1)) : 0 },
-    { label: 'Discovery Done', count: funnel?.discovery_completed ?? 0, pct: funnelSignups ? parseFloat((((funnel?.discovery_completed ?? 0) / funnelSignups) * 100).toFixed(1)) : 0 },
-    { label: 'Doc Generated', count: funnel?.artifacts_generated ?? 0, pct: funnelSignups ? parseFloat((((funnel?.artifacts_generated ?? 0) / funnelSignups) * 100).toFixed(1)) : 0 },
-    { label: 'Exported', count: funnel?.exported ?? 0, pct: funnelSignups ? parseFloat((((funnel?.exported ?? 0) / funnelSignups) * 100).toFixed(1)) : 0 },
-    { label: 'Subscribed', count: funnel?.paid ?? 0, pct: funnelSignups ? parseFloat((((funnel?.paid ?? 0) / funnelSignups) * 100).toFixed(1)) : 0 },
+    { label: 'Started Project', count: funnel?.discovery_started ?? 0, pct: funnelPct(funnel?.discovery_started ?? 0) },
+    { label: 'Discovery Done', count: funnel?.discovery_completed ?? 0, pct: funnelPct(funnel?.discovery_completed ?? 0) },
+    { label: 'Doc Generated', count: funnel?.artifacts_generated ?? 0, pct: funnelPct(funnel?.artifacts_generated ?? 0) },
+    { label: 'Exported', count: funnel?.exported ?? 0, pct: funnelPct(funnel?.exported ?? 0) },
+    { label: 'Subscribed', count: funnel?.paid ?? 0, pct: funnelPct(funnel?.paid ?? 0) },
   ];
 
   // Cohort matrix
@@ -288,7 +298,7 @@ export default function DashboardPage() {
               <span className={s.feedDot} style={{ background: 'var(--accent)' }} />
               <div>
                 <div className={s.feedText}>
-                  {a.actor ?? 'System'}: {a.action}{a.target ? ` → ${a.target}` : ''}
+                  {a.actor ?? 'System'}: {humanize(a.action)}{a.target ? ` → ${a.target}` : ''}
                 </div>
                 <div className={s.feedTime}>{timeAgo(a.created_at)}</div>
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { SystemHealth } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from '../admin.module.css';
 
 function statusCls(val: number, thresholdWarn: number, thresholdBad: number) {
@@ -186,7 +187,7 @@ export default function SystemPage() {
                   <span className={s.feedDot} style={{ background: 'var(--error)' }} />
                   <div>
                     <div className={s.feedText}>{err.error_message}</div>
-                    <div className={s.feedTime}>{err.event_type} &middot; {new Date(err.created_at).toLocaleString()}</div>
+                    <div className={s.feedTime}>{humanize(err.event_type)} &middot; {new Date(err.created_at).toLocaleString()}</div>
                   </div>
                 </div>
               ))

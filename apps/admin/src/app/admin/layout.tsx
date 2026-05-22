@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AdminUser } from '@/lib/admin-auth';
 import type { SidebarCounts } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from './admin.module.css';
 
 /* ── Sidebar nav config ──────────────────────────────────────── */
@@ -311,7 +312,7 @@ export default function AdminLayout({
           <div className={s.userAvatar}>{initials}</div>
           <div className={s.userInfo}>
             <span className={s.userName}>{admin?.full_name ?? admin?.email ?? 'Admin'}</span>
-            <span className={s.userRole}>Super Admin</span>
+            <span className={s.userRole}>{humanize(admin?.role ?? 'admin')}</span>
           </div>
         </div>
       </aside>

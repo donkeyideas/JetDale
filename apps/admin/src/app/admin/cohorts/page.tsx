@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { CohortRow } from '@/lib/admin-types';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 import d from '../dashboard.module.css';
 
@@ -38,14 +39,19 @@ function buildMatrix(data: CohortRow[]): CohortMatrix {
   const periodHeaders = Array.from({ length: maxPeriods }, (_, i) => `M${i}`);
 
   const rows = cohortMonths.map((month) => {
-    const entries = grouped[month].sort((a, b) => a.activity_month.localeCompare(b.activity_month));
+    const entries = grouped[month].sort(
+      (a, b) => (a.activity_month ?? '').localeCompare(b.activity_month ?? ''),
+    );
     const cohort_size = entries[0]?.cohort_size ?? 0;
-    const values = Array.from({ length: maxPeriods }, (_, i) => {
+    const values = Array.from({ length: maxPeriods }, (_, i): number | null => {
       const entry = entries[i];
-      if (!entry) return null;
-      return cohort_size > 0 ? Math.round((entry.active_users / cohort_size) * 100) : null;
+      if (!entry || cohort_size <= 0 || entry.active_users == null) return null;
+      return Math.round((entry.active_users / cohort_size) * 100);
     });
-    const label = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const dt = new Date(month);
+    const label = Number.isNaN(dt.getTime())
+      ? 'Unknown'
+      : dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     return { label, cohort_size, values };
   });
 
@@ -65,10 +71,10 @@ export default function CohortsPage() {
 
   const matrix = buildMatrix(data);
 
-  // Compute KPIs
-  const allRetentions = matrix.rows.flatMap((r) => r.values.filter((v): v is number => v !== null));
-  const m1Vals = matrix.rows.map((r) => r.values[1]).filter((v): v is number => v !== null);
-  const m3Vals = matrix.rows.map((r) => r.values[3]).filter((v): v is number => v !== null);
+  // Compute KPIs — only count real, finite numbers (skip null/undefined).
+  const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  const m1Vals = matrix.rows.map((r) => r.values[1]).filter(isNum);
+  const m3Vals = matrix.rows.map((r) => r.values[3]).filter(isNum);
   const avgM1 = m1Vals.length ? Math.round(m1Vals.reduce((a, b) => a + b, 0) / m1Vals.length) : 0;
   const avgM3 = m3Vals.length ? Math.round(m3Vals.reduce((a, b) => a + b, 0) / m3Vals.length) : 0;
   const bestCohort = matrix.rows.reduce((best, row) => {
@@ -83,7 +89,7 @@ export default function CohortsPage() {
           <h1 className={s.pageTitle}>Cohorts</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('cohorts', data)}>Export</button>
         </div>
       </header>
 

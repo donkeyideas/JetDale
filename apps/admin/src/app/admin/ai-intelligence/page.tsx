@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AiIntelligenceData } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 function fmtDollars(cents: number) {
@@ -45,7 +47,7 @@ export default function AiIntelligencePage() {
           <h1 className={s.pageTitle}>AI Intelligence</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Download Report</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('ai-intelligence', data)}>Download Report</button>
         </div>
       </header>
 
@@ -89,7 +91,7 @@ export default function AiIntelligencePage() {
               <div className={s.sectionTitle}>Usage by Feature</div>
               {byFeature.map((f) => (
                 <div key={f.feature} className={s.hBarRow}>
-                  <span className={s.hBarLabel}>{f.feature}</span>
+                  <span className={s.hBarLabel}>{humanize(f.feature)}</span>
                   <div className={s.hBarTrack}>
                     <div className={s.hBar} style={{ width: `${Math.round((f.calls / maxFeatureCalls) * 100)}%` }} />
                   </div>
@@ -103,7 +105,7 @@ export default function AiIntelligencePage() {
                 <div style={{ marginTop: 16 }}>
                   {byFeature.map((f) => (
                     <div key={f.feature} className={s.healthMetric}>
-                      <span className={s.healthLabel}>{f.feature}</span>
+                      <span className={s.healthLabel}>{humanize(f.feature)}</span>
                       <span className={s.healthValue}>
                         {fmtTokens(f.tokens)} tokens &middot; {fmtDollars(f.cost_cents)} &middot; {f.avg_latency_ms}ms &middot; {f.success_rate}%
                       </span>
@@ -199,8 +201,8 @@ export default function AiIntelligencePage() {
                     {recent.map((e) => (
                       <tr key={e.id}>
                         <td>{new Date(e.created_at).toLocaleString()}</td>
-                        <td>{e.event_type}</td>
-                        <td>{e.model}</td>
+                        <td>{humanize(e.event_type)}</td>
+                        <td>{humanize(e.model)}</td>
                         <td>{(e.prompt_tokens + e.completion_tokens).toLocaleString()}</td>
                         <td>{fmtDollars(e.cost_cents)}</td>
                         <td>{e.latency_ms != null ? `${e.latency_ms}ms` : '—'}</td>

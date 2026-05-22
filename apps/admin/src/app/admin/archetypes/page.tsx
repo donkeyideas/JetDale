@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { ArchetypeRow } from '@/lib/admin-types';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 export default function ArchetypesPage() {
@@ -27,7 +28,7 @@ export default function ArchetypesPage() {
           <h1 className={s.pageTitle}>Archetypes</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('archetypes', archetypes)}>Export</button>
         </div>
       </header>
 

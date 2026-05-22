@@ -2,14 +2,14 @@
 
 // ============================================================
 // Jetdale — User Dashboard
-// Real data from localStorage. No hardcoded projects.
+// Supabase is the source of truth; localStorage is an offline cache.
 // ============================================================
 
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
-import { getProjectsForUser, saveProject, type JetdaleProject } from '@/lib/storage';
+import { getProjectsForUser, type JetdaleProject } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { loadProjectsFromSupabase, syncProjectToSupabase } from '@/lib/supabase-storage';
+import { loadProjectSummaries } from '@/lib/supabase-storage';
 
 const PHASE_LABELS: Record<string, string> = {
   discovery: 'Discovery', reality_check: 'Reality Check', artifacts: 'Generating...',
@@ -31,44 +31,32 @@ function getDateString() {
 
 function calcProgress(project: JetdaleProject): number {
   const ready = Object.values(project.artifacts).filter((a) => a.status === 'ready').length;
-  return Math.round((ready / 17) * 100);
+  return Math.min(100, Math.round((ready / 17) * 100));
 }
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<JetdaleProject[]>([]);
   const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
   const supabase = useRef(createSupabaseBrowserClient());
 
   useEffect(() => {
     supabase.current.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
+      if (!data.user) { setLoading(false); return; }
       const uid = data.user.id;
       const name = data.user.user_metadata?.full_name
         || data.user.email?.split('@')[0] || '';
       setUserName(name);
 
-      // Instant render from localStorage
-      const local = getProjectsForUser(uid);
-      setProjects(local);
-
-      // Background: sync localStorage projects TO Supabase (in case earlier syncs failed)
-      for (const p of local) {
-        syncProjectToSupabase(p).catch(() => {});
-      }
-
-      // Background: merge any Supabase-only projects into localStorage
-      loadProjectsFromSupabase(uid).then((remote) => {
-        if (!remote.length) return;
-        const localIds = new Set(local.map((p) => p.id));
-        let merged = false;
-        for (const rp of remote) {
-          if (!localIds.has(rp.id)) {
-            saveProject(rp); // persist to localStorage
-            merged = true;
-          }
-        }
-        if (merged) setProjects(getProjectsForUser(uid));
-      }).catch(() => {});
+      // Lightweight load — project metadata + artifact counts only.
+      // Full artifact content is loaded lazily when a project is opened.
+      loadProjectSummaries(uid).then((summaries) => {
+        setProjects(summaries);
+        setLoading(false);
+      }).catch(() => {
+        setProjects(getProjectsForUser(uid));
+        setLoading(false);
+      });
     });
   }, []);
 
@@ -79,6 +67,17 @@ export default function DashboardPage() {
   const avgCompletion = totalProjects
     ? Math.round(projects.reduce((sum, p) => sum + calcProgress(p), 0) / totalProjects)
     : 0;
+
+  // ============== LOADING STATE ==============
+  if (loading) {
+    return (
+      <div style={{ maxWidth: 600, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '.15em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+          Loading your projects&hellip;
+        </div>
+      </div>
+    );
+  }
 
   // ============== EMPTY STATE ==============
   if (totalProjects === 0) {

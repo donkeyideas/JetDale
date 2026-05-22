@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
     // ----------------------------------------------------------
     // 11. Increment quota
     // ----------------------------------------------------------
-    await incrementQuota(user.id, 'discoveries_completed');
+    await incrementQuota(user.id, 'reality_checks_completed');
 
     // ----------------------------------------------------------
     // 12. Update project last_activity_at

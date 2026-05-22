@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { FeatureFlagRow } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import NewFlagModal from './NewFlagModal';
 import s from '../admin.module.css';
 
 function flagStatusClass(enabled: boolean, rollout: number) {
@@ -20,6 +22,7 @@ function flagStatusLabel(enabled: boolean, rollout: number) {
 export default function FeatureFlagsPage() {
   const [flags, setFlags] = useState<FeatureFlagRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNewFlag, setShowNewFlag] = useState(false);
 
   const fetchFlags = useCallback(async () => {
     try {
@@ -74,7 +77,9 @@ export default function FeatureFlagsPage() {
           </span>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnPrimary}>+ New Flag</button>
+          <button type="button" className={s.btnPrimary} onClick={() => setShowNewFlag(true)}>
+            + New Flag
+          </button>
         </div>
       </header>
 
@@ -96,7 +101,7 @@ export default function FeatureFlagsPage() {
             <tbody>
               {flags.map((flag) => (
                 <tr key={flag.key}>
-                  <td style={{ fontWeight: 600, fontSize: 13 }}>{flag.key.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                  <td style={{ fontWeight: 600, fontSize: 13 }}>{humanize(flag.key)}</td>
                   <td style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'var(--muted)' }}>
                     {flag.key}
                   </td>
@@ -128,6 +133,9 @@ export default function FeatureFlagsPage() {
                   </td>
                   <td>
                     <button
+                      type="button"
+                      aria-label={`${flag.enabled ? 'Disable' : 'Enable'} ${humanize(flag.key)}`}
+                      title={`${flag.enabled ? 'Disable' : 'Enable'} ${humanize(flag.key)}`}
                       onClick={() => toggleFlag(flag.key, !flag.enabled)}
                       style={{
                         width: 40,
@@ -161,6 +169,13 @@ export default function FeatureFlagsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {showNewFlag && (
+        <NewFlagModal
+          onClose={() => setShowNewFlag(false)}
+          onCreated={fetchFlags}
+        />
       )}
     </>
   );

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AiAnalyticsData } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 function fmtDollars(cents: number) {
@@ -36,7 +38,7 @@ export default function AiAnalyticsPage() {
           <h1 className={s.pageTitle}>AI Analytics</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Download Report</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('ai-analytics', data)}>Download Report</button>
         </div>
       </header>
 
@@ -81,7 +83,7 @@ export default function AiAnalyticsPage() {
             <div className={s.sectionTitle}>Usage by Event Type</div>
             {byType.map((t) => (
               <div key={t.event_type} className={s.hBarRow}>
-                <span className={s.hBarLabel}>{t.event_type}</span>
+                <span className={s.hBarLabel}>{humanize(t.event_type)}</span>
                 <div className={s.hBarTrack}>
                   <div className={s.hBar} style={{ width: `${Math.round((t.count / maxTypeCount) * 100)}%` }} />
                 </div>
@@ -109,7 +111,7 @@ export default function AiAnalyticsPage() {
                 <tbody>
                   {byModel.map((m) => (
                     <tr key={m.model}>
-                      <td>{m.model}</td>
+                      <td>{humanize(m.model)}</td>
                       <td>{m.count.toLocaleString()}</td>
                       <td>{fmtDollars(m.cost_cents)}</td>
                       <td>{m.avg_latency_ms.toLocaleString()}ms</td>

@@ -14,8 +14,11 @@ export async function GET(req: NextRequest) {
     projectsRes,
     paidRes,
     trialingRes,
-    discoveryRes,
-    funnelAllRes,
+    projectUsersRes,
+    discoveryUsersRes,
+    artifactUsersRes,
+    exportUsersRes,
+    paidUsersRes,
     cohortRes,
     aiRes,
     activityRes,
@@ -26,13 +29,21 @@ export async function GET(req: NextRequest) {
     db.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active').neq('plan_tier', 'free'),
     db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
-    db.from('discovery_sessions').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-    db.from('mv_activation_funnel').select('*'),
+    // Distinct-user funnel sources
+    db.from('projects').select('user_id'),
+    db.from('discovery_sessions').select('user_id').eq('status', 'completed'),
+    db.from('artifacts').select('user_id'),
+    db.from('exports').select('user_id'),
+    db.from('subscriptions').select('user_id').neq('plan_tier', 'free').in('status', ['active', 'trialing']),
     db.from('mv_cohort_retention').select('*').order('cohort_month', { ascending: true }),
     db.from('ai_events').select('cost_cents, latency_ms, success').gte('created_at', new Date(Date.now() - 86400000).toISOString()),
     db.from('audit_log').select('id, action, actor_id, target_type, target_id, created_at').order('created_at', { ascending: false }).limit(10),
     db.from('archetypes').select('id, name'),
   ]);
+
+  // Count distinct, non-null user_ids.
+  const distinctUsers = (rows: { user_id: string | null }[] | null) =>
+    new Set((rows ?? []).map((r) => r.user_id).filter(Boolean)).size;
 
   // KPIs
   const mrrCents = mrrRes.data?.mrr_cents ?? 0;
@@ -40,49 +51,36 @@ export async function GET(req: NextRequest) {
   const activeProjects = projectsRes.count ?? 0;
   const paidCustomers = paidRes.count ?? 0;
   const trialingSubs = trialingRes.count ?? 0;
-  const discoveryCompleted = discoveryRes.count ?? 0;
-  const discoveryPct = totalUsers > 0 ? Math.round((discoveryCompleted / totalUsers) * 100) : 0;
+
+  // Discovery completion = % of users who completed at least one discovery (capped 100%).
+  const discoveryUsers = distinctUsers(discoveryUsersRes.data);
+  const discoveryPct = totalUsers > 0
+    ? Math.min(100, Math.round((discoveryUsers / totalUsers) * 100))
+    : 0;
 
   // AI stats (24h)
   const aiEvents = (aiRes.data ?? []) as { cost_cents: number | null; latency_ms: number | null; success: boolean }[];
-  const aiAvgLatency = aiEvents.length
-    ? Math.round(aiEvents.filter((e) => e.latency_ms).reduce((s, e) => s + (e.latency_ms ?? 0), 0) / aiEvents.filter((e) => e.latency_ms).length)
+  const latencyEvents = aiEvents.filter((e) => e.latency_ms);
+  const aiAvgLatency = latencyEvents.length
+    ? Math.round(latencyEvents.reduce((s, e) => s + (e.latency_ms ?? 0), 0) / latencyEvents.length)
     : 0;
   const aiSuccessRate = aiEvents.length
-    ? ((aiEvents.filter((e) => e.success).length / aiEvents.length) * 100).toFixed(1)
-    : '0';
+    ? parseFloat(((aiEvents.filter((e) => e.success).length / aiEvents.length) * 100).toFixed(1))
+    : 0;
   const aiDailyCost = aiEvents.reduce((s, e) => s + (e.cost_cents ?? 0), 0);
 
   // ARPU
   const arpuCents = paidCustomers > 0 ? Math.round(mrrCents / paidCustomers) : 0;
 
-  // Funnel: sum across all daily rows from MV, or compute from tables when empty
-  const funnelRows = funnelAllRes.data ?? [];
-  let funnel: { signups: number; discovery_started: number; discovery_completed: number; artifacts_generated: number; exported: number; paid: number } | null = null;
-  if (funnelRows.length > 0) {
-    funnel = {
-      signups: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.signups ?? 0), 0),
-      discovery_started: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.discovery_started ?? 0), 0),
-      discovery_completed: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.discovery_completed ?? 0), 0),
-      artifacts_generated: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.artifacts_generated ?? 0), 0),
-      exported: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.exported ?? 0), 0),
-      paid: funnelRows.reduce((s: number, r: Record<string, number>) => s + (r.paid ?? 0), 0),
-    };
-  }
-  if (!funnel) {
-    const [artifactsCount, exportsCount] = await Promise.all([
-      db.from('artifacts').select('id', { count: 'exact', head: true }),
-      db.from('exports').select('id', { count: 'exact', head: true }),
-    ]);
-    funnel = {
-      signups: totalUsers,
-      discovery_started: activeProjects,
-      discovery_completed: discoveryCompleted,
-      artifacts_generated: artifactsCount.count ?? 0,
-      exported: exportsCount.count ?? 0,
-      paid: paidCustomers,
-    };
-  }
+  // Activation funnel — distinct users who reached each stage.
+  const funnel = {
+    signups: totalUsers,
+    discovery_started: distinctUsers(projectUsersRes.data),
+    discovery_completed: discoveryUsers,
+    artifacts_generated: distinctUsers(artifactUsersRes.data),
+    exported: distinctUsers(exportUsersRes.data),
+    paid: distinctUsers(paidUsersRes.data),
+  };
 
   // Archetype project counts — show ALL archetypes (not just those with projects)
   const { data: archProjects } = await db.from('projects').select('archetype_id').eq('status', 'active');
@@ -129,7 +127,7 @@ export async function GET(req: NextRequest) {
     cohorts: cohortRes.data ?? [],
     ai: {
       avg_latency_ms: aiAvgLatency,
-      success_rate: parseFloat(aiSuccessRate),
+      success_rate: aiSuccessRate,
       daily_cost_cents: aiDailyCost,
       daily_generations: aiEvents.length,
     },

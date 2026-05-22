@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { ExportStats } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 export default function ExportsPage() {
@@ -27,7 +29,7 @@ export default function ExportsPage() {
           <h1 className={s.pageTitle}>Exports</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Download Report</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('exports', stats)}>Download Report</button>
         </div>
       </header>
 
@@ -42,7 +44,7 @@ export default function ExportsPage() {
             </div>
             {targetEntries.slice(0, 3).map(([target, count]) => (
               <div key={target} className={s.card}>
-                <div className={s.cardTitle}>{target.charAt(0).toUpperCase() + target.slice(1)} Exports</div>
+                <div className={s.cardTitle}>{humanize(target)} Exports</div>
                 <div className={s.cardValue}>{count.toLocaleString()}</div>
               </div>
             ))}
@@ -52,7 +54,7 @@ export default function ExportsPage() {
             <div className={s.sectionTitle}>Exports by Target</div>
             {targetEntries.map(([target, count]) => (
               <div key={target} className={s.hBarRow}>
-                <span className={s.hBarLabel}>{target}</span>
+                <span className={s.hBarLabel}>{humanize(target)}</span>
                 <div className={s.hBarTrack}>
                   <div className={s.hBar} style={{ width: `${Math.round((count / maxTarget) * 100)}%` }} />
                 </div>

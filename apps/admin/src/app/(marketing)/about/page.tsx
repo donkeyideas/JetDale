@@ -42,10 +42,10 @@ const VALUES = [
 ];
 
 const STATS = [
-  { num: '47', label: 'Industry archetypes', detail: 'Covering software, games, events, renovations, and more' },
-  { num: '12', label: 'Artifacts per project', detail: 'Vision, scope, personas, roadmap, tech stack, wireframes, risks, metrics, budget, decisions, pre-mortem, pitch deck' },
+  { num: '5', label: 'Launch archetypes', detail: 'Indie software, AI-built apps, indie games, weddings & events, home renovations' },
+  { num: '17', label: 'Artifacts per project', detail: 'Vision, scope, personas, competitive analysis, user journey, roadmap, tech stack, architecture, wireframes, RACI, metrics, budget, risks, go-to-market, decisions, pre-mortem, pitch deck' },
   { num: '9', label: 'Export formats', detail: 'Claude Code, Cursor, Lovable, Bolt, Replit, Markdown, PDF, Pitch Deck, RFP' },
-  { num: '<1hr', label: 'Time to plan', detail: 'From one-sentence idea to 12 production-ready documents' },
+  { num: '<1hr', label: 'Time to plan', detail: 'From one-sentence idea to 17 production-ready documents' },
 ];
 
 export default function AboutPage() {

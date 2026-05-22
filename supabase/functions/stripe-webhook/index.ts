@@ -112,13 +112,26 @@ function timingSafeEqual(a: string, b: string): boolean {
 // Price ID to plan tier mapping
 // ---------------------------------------------------------------------------
 
-function getPlanTierFromPriceId(priceId: string): 'pro' | 'free' {
+/**
+ * Resolve a plan tier from a Stripe price ID by matching against the
+ * plan_configs table (source of truth). Falls back to the Pro env vars.
+ */
+async function getPlanTierFromPriceId(
+  supabase: ReturnType<typeof getAdminClient>,
+  priceId: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from('plan_configs')
+    .select('tier')
+    .or(`stripe_monthly_price_id.eq.${priceId},stripe_annual_price_id.eq.${priceId}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (data?.tier) return data.tier as string;
+
   const proMonthly = Deno.env.get('STRIPE_PRO_MONTHLY_PRICE_ID');
   const proAnnual = Deno.env.get('STRIPE_PRO_ANNUAL_PRICE_ID');
-
-  if (priceId === proMonthly || priceId === proAnnual) {
-    return 'pro';
-  }
+  if (priceId === proMonthly || priceId === proAnnual) return 'pro';
 
   return 'free';
 }
@@ -168,6 +181,40 @@ async function resolveUserId(
   return null;
 }
 
+/**
+ * Extract the subscription ID from an invoice.
+ *
+ * Stripe moved this field over API versions: older versions expose a
+ * top-level `invoice.subscription`; the 2025+ "Basil" restructuring and
+ * later (including 2026-04-22.dahlia) nest it under
+ * `invoice.parent.subscription_details.subscription`. The value may be a
+ * bare ID string or an expanded object — handle all of these so the
+ * webhook works regardless of the destination's configured API version.
+ */
+function getInvoiceSubscriptionId(
+  invoice: Record<string, unknown>,
+): string | undefined {
+  const asId = (value: unknown): string | undefined => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object' && 'id' in value) {
+      const id = (value as { id: unknown }).id;
+      return typeof id === 'string' ? id : undefined;
+    }
+    return undefined;
+  };
+
+  // Older API versions: top-level field.
+  const topLevel = asId(invoice.subscription);
+  if (topLevel) return topLevel;
+
+  // Basil (2025-03+) and later: nested under parent.subscription_details.
+  const parent = invoice.parent as Record<string, unknown> | undefined;
+  const subDetails = parent?.subscription_details as
+    | Record<string, unknown>
+    | undefined;
+  return asId(subDetails?.subscription);
+}
+
 // ---------------------------------------------------------------------------
 // Event handlers
 // ---------------------------------------------------------------------------
@@ -193,7 +240,7 @@ async function handleCheckoutSessionCompleted(
 
   // Extract the price ID from the line items metadata or subscription
   // The checkout session may include line items with price info
-  let planTier: 'pro' | 'free' = 'pro'; // default for checkout
+  let planTier = 'pro'; // default for checkout
 
   const lineItems = session.line_items as Record<string, unknown> | undefined;
   if (lineItems) {
@@ -201,7 +248,7 @@ async function handleCheckoutSessionCompleted(
     if (data && data.length > 0) {
       const price = data[0].price as Record<string, unknown> | undefined;
       if (price?.id) {
-        planTier = getPlanTierFromPriceId(price.id as string);
+        planTier = await getPlanTierFromPriceId(supabase, price.id as string);
       }
     }
   }
@@ -209,7 +256,7 @@ async function handleCheckoutSessionCompleted(
   // Also check metadata for price_id if set by the checkout creation flow
   const metadata = session.metadata as Record<string, unknown> | undefined;
   if (metadata?.price_id) {
-    planTier = getPlanTierFromPriceId(metadata.price_id as string);
+    planTier = await getPlanTierFromPriceId(supabase, metadata.price_id as string);
   }
 
   // Upsert subscription record
@@ -260,25 +307,35 @@ async function handleSubscriptionUpdated(
   const canceledAt = subscription.canceled_at
     ? new Date((subscription.canceled_at as number) * 1000).toISOString()
     : null;
-  const currentPeriodStart = subscription.current_period_start
-    ? new Date((subscription.current_period_start as number) * 1000).toISOString()
+  // Period dates live on the subscription in older API versions and on the
+  // first subscription item in newer ones — check both.
+  const subItems = subscription.items as Record<string, unknown> | undefined;
+  const firstItem = (subItems?.data as Array<Record<string, unknown>> | undefined)?.[0];
+  const rawPeriodStart =
+    (subscription.current_period_start as number | undefined) ??
+    (firstItem?.current_period_start as number | undefined);
+  const rawPeriodEnd =
+    (subscription.current_period_end as number | undefined) ??
+    (firstItem?.current_period_end as number | undefined);
+  const currentPeriodStart = rawPeriodStart
+    ? new Date(rawPeriodStart * 1000).toISOString()
     : null;
-  const currentPeriodEnd = subscription.current_period_end
-    ? new Date((subscription.current_period_end as number) * 1000).toISOString()
+  const currentPeriodEnd = rawPeriodEnd
+    ? new Date(rawPeriodEnd * 1000).toISOString()
     : null;
   const cancelAt = subscription.cancel_at
     ? new Date((subscription.cancel_at as number) * 1000).toISOString()
     : null;
 
   // Determine plan tier from the first item's price ID
-  let planTier: 'pro' | 'free' = 'pro';
+  let planTier = 'pro';
   const items = subscription.items as Record<string, unknown> | undefined;
   if (items) {
     const data = items.data as Array<Record<string, unknown>> | undefined;
     if (data && data.length > 0) {
       const price = data[0].price as Record<string, unknown> | undefined;
       if (price?.id) {
-        planTier = getPlanTierFromPriceId(price.id as string);
+        planTier = await getPlanTierFromPriceId(supabase, price.id as string);
       }
     }
   }
@@ -290,7 +347,7 @@ async function handleSubscriptionUpdated(
     past_due: 'past_due',
     canceled: 'canceled',
     unpaid: 'past_due',
-    incomplete: 'past_due',
+    incomplete: 'incomplete',
     incomplete_expired: 'expired',
     paused: 'paused',
   };
@@ -342,8 +399,12 @@ async function handleSubscriptionUpdated(
       },
     });
   } else {
-    // If we can't find the subscription, try to resolve user and create it
-    const userId = await resolveUserId(supabase, customerId, undefined);
+    // If we can't find the subscription, resolve the user. The embedded
+    // billing flow tags subscriptions with metadata.user_id — prefer that,
+    // then fall back to customer-ID / email lookup.
+    const metaUserId = (subscription.metadata as Record<string, unknown> | undefined)
+      ?.user_id as string | undefined;
+    const userId = metaUserId ?? await resolveUserId(supabase, customerId, undefined);
     if (userId) {
       const { error } = await supabase.from('subscriptions').upsert(
         {
@@ -440,7 +501,7 @@ async function handleInvoicePaymentFailed(
   supabase: ReturnType<typeof getAdminClient>,
   invoice: Record<string, unknown>,
 ): Promise<void> {
-  const subscriptionId = invoice.subscription as string | undefined;
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
   const customerId = invoice.customer as string;
 
   if (!subscriptionId) {
@@ -493,7 +554,7 @@ async function handleInvoicePaymentSucceeded(
   supabase: ReturnType<typeof getAdminClient>,
   invoice: Record<string, unknown>,
 ): Promise<void> {
-  const subscriptionId = invoice.subscription as string | undefined;
+  const subscriptionId = getInvoiceSubscriptionId(invoice);
   const customerId = invoice.customer as string;
 
   if (!subscriptionId) {
@@ -634,6 +695,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         await handleCheckoutSessionCompleted(supabase, event.data.object);
         break;
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(supabase, event.data.object);
         break;

@@ -30,7 +30,7 @@ const sections = [
     title: '3. AI Processing & Data Handling',
     content: `Jetdale uses AI models to generate project documentation. Here is how we handle your data in this context:
 
-- Your project descriptions are sent to AI providers (e.g., Google Gemini) for processing
+- Your project descriptions are sent to our AI provider (DeepSeek) for processing
 - We do not use your project data to train AI models
 - Generated artifacts are stored in your account and can be deleted at any time
 - We retain project data for the duration of your account plus 30 days after deletion

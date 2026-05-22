@@ -87,6 +87,7 @@ async function resetMonthlyQuotas(): Promise<boolean> {
     .update({
       projects_created: 0,
       discoveries_completed: 0,
+      reality_checks_completed: 0,
       artifacts_generated: 0,
       exports_run: 0,
       voice_minutes_used: 0,

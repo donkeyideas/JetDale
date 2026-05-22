@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { RevenueData } from '@/lib/admin-types';
+import { downloadReport } from '@/lib/report';
 import s from '../admin.module.css';
 
 function fmtDollars(cents: number) {
@@ -30,7 +31,7 @@ export default function RevenuePage() {
           <h1 className={s.pageTitle}>Revenue</h1>
         </div>
         <div className={s.headerControls}>
-          <button className={s.btnOutline}>Export</button>
+          <button type="button" className={s.btnOutline} onClick={() => downloadReport('revenue', data)}>Export</button>
         </div>
       </header>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
 import type { AdminProjectRow, PaginatedResponse } from '@/lib/admin-types';
+import { humanize } from '@/lib/format';
 import s from '../admin.module.css';
 
 function phaseBadge(phase: string) {
@@ -15,7 +16,7 @@ function phaseBadge(phase: string) {
   return (
     <span className={`${s.statusBadge} ${map[phase] ?? s.statusGray}`}>
       <span className={s.statusDot} />
-      {phase}
+      {humanize(phase)}
     </span>
   );
 }
