@@ -600,7 +600,12 @@ function WorkspaceContent() {
           </h1>
 
           {/* Jetdale review score chip */}
-          {reviewScore ? (
+          {reviewScore && reviewScore.concernCount === 0 ? (
+            <div style={{ marginTop: 12, fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+              Last reality check came back empty (no concerns found) —
+              likely incomplete analysis. Click <strong>Reality check</strong> to retry.
+            </div>
+          ) : reviewScore ? (
             <button
               type="button"
               onClick={() => setScoreOpen((o) => !o)}

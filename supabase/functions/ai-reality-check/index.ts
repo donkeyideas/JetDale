@@ -221,6 +221,17 @@ Deno.serve(async (req) => {
     // Validate and sanitize the parsed output
     parsed = sanitizeOutput(parsed);
 
+    // Refuse to save a reality check the AI didn't actually do. A zero-concern
+    // response is almost always a sycophantic model failure (or a parse fallback),
+    // not a genuinely flawless plan — saving it would show 100/100 misleadingly.
+    if (parsed.concerns.length === 0) {
+      return errorResponse(
+        "The reality check came back empty (the model didn't return any concerns). " +
+        "This usually means the analysis didn't run properly — please try again.",
+        502,
+      );
+    }
+
     // Derive the Jetdale review score from the concerns.
     const score = computeReviewScore(parsed.concerns);
 
@@ -361,6 +372,11 @@ ${discoveryBlock || '(No discovery answers available)'}
 ${artifactsBlock}
 
 === YOUR TASK ===
+This is a high-stakes review. The founder trusts this analysis to spot what
+will sink them. Be the brutally honest senior advisor they don't have. EVERY
+project — even strong ones — has at least 5 real concerns. A glowing "looks
+great" review is a failure of your job, not a compliment to the founder.
+
 Analyze EVERYTHING above and find:
 
 1. **Contradictions** — Does the budget match the scope? Does the timeline match the feature set? Do the personas match the stated target market? Are technical choices consistent with the team's stated abilities?
@@ -399,7 +415,7 @@ Respond with ONLY a valid JSON object (no markdown fences, no text before or aft
 - severity must be one of: "high", "medium", "low"
 - area must be one of: "budget", "timeline", "scope", "market", "technical", "team", "legal"
 - artifact_type in proposed_changes must match actual artifact types: vision, scope, personas, competitive_analysis, user_journey, roadmap, tech_stack, architecture_overview, wireframes, raci_matrix, success_metrics, budget, go_to_market, risk_register, decision_log, pre_mortem, pitch_deck
-- Include 4-10 concerns. Do not pad with trivial issues, but do not ignore real problems.
+- You MUST return at least 5 concerns. If your initial draft has fewer than 5, look harder at: legal/regulatory exposure (licensing, age verification, KYC/AML, jurisdiction), money handling (escrow, custodial accounts, payouts, taxes), single points of failure (one developer, one payment provider, one channel), market reality (will real users pay this price? what does the leader cost?), and timeline math (does the roadmap actually fit the budget?). Returning fewer than 5 concerns means you did not do your job. Maximum 12 — quality matters, but err on finding more.
 - Include 2-6 proposed changes. Only suggest changes that would meaningfully improve the plan.
 - Be specific. Reference actual numbers, features, and statements from the documents.
 - Do not soften bad news. If the budget is wildly insufficient, say so clearly.
