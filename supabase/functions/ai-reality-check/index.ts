@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
             'Perform a thorough reality check on this project. Be honest and specific. Do not soften bad news.',
         },
       ],
-      maxTokens: 4000,
+      maxTokens: 6000,
       temperature: 0.3,
     });
 
@@ -210,33 +210,71 @@ Deno.serve(async (req) => {
     // 9. Parse the AI response into structured JSON
     // ----------------------------------------------------------
     let parsed: RealityCheckOutput;
+    let parseOk = true;
     try {
       parsed = extractJson(aiResult.content);
     } catch (parseErr) {
+      parseOk = false;
       console.error(
         'Failed to parse reality check JSON:',
         parseErr,
         '\nRaw content:',
         aiResult.content,
       );
-      // Fallback: wrap the raw text as a summary with no structured concerns
       parsed = {
         summary: aiResult.content.slice(0, 500),
         concerns: [],
         proposed_changes: [],
+        contradictions: [],
       };
     }
 
-    // Validate and sanitize the parsed output
     parsed = sanitizeOutput(parsed);
 
-    // Refuse to save a reality check the AI didn't actually do. A zero-concern
-    // response is almost always a sycophantic model failure (or a parse fallback),
-    // not a genuinely flawless plan — saving it would show 100/100 misleadingly.
+    // Empty concerns after a successful parse means the model was sycophantic.
+    // An unparseable response is a different failure — usually JSON truncation
+    // at the token cap. Retry once with a stricter system instruction; many
+    // empty/garbled responses self-correct on the second attempt.
+    if (!parseOk || parsed.concerns.length === 0) {
+      console.warn(
+        `Reality check first attempt empty (parseOk=${parseOk}, concerns=${parsed.concerns.length}) — retrying with stricter prompt`,
+      );
+      const retryPrompt = systemPrompt + `
+
+=== RETRY INSTRUCTION ===
+Your previous response was empty or invalid. You MUST output a single valid JSON object — no markdown, no commentary, no prose before or after — with at least 5 concerns. No project is perfect. Be brutally honest. If you cannot find 5 concerns, you are not looking hard enough.`;
+      const retryResult = await callAI({
+        model: 'deepseek-v4-flash',
+        eventType: 'reality_check',
+        userId: user.id,
+        projectId,
+        messages: [
+          { role: 'system', content: retryPrompt },
+          { role: 'user', content: 'Output the JSON now. At least 5 concerns. Be brutally honest.' },
+        ],
+        maxTokens: 6000,
+        temperature: 0.2,
+      });
+      try {
+        const retryParsed = sanitizeOutput(extractJson(retryResult.content));
+        if (retryParsed.concerns.length > 0) {
+          parsed = retryParsed;
+          parseOk = true;
+          // Account for both calls' cost.
+          aiResult.costCents = (aiResult.costCents ?? 0) + (retryResult.costCents ?? 0);
+        }
+      } catch (retryErr) {
+        console.error('Retry parse also failed:', retryErr, '\nRaw retry content:', retryResult.content);
+      }
+    }
+
     if (parsed.concerns.length === 0) {
       return errorResponse(
-        "The reality check came back empty (the model didn't return any concerns). " +
-        "This usually means the analysis didn't run properly — please try again.",
+        parseOk
+          ? "The reality check ran but the model returned no concerns even after retry. " +
+            "This usually clears on another try — please run Reality check once more."
+          : "The reality check response could not be parsed even after retry. " +
+            "The model may be having trouble — please try again.",
         502,
       );
     }

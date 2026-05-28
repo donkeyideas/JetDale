@@ -225,6 +225,7 @@ function WorkspaceContent() {
   const [reviewScore, setReviewScore] = useState<ReviewScoreState | null>(null);
   const [scoreOpen, setScoreOpen] = useState(false);
   const [scoreLoading, setScoreLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ title: string; body: string } | null>(null);
 
   // Fetch the latest reality_check's score for this project.
   useEffect(() => {
@@ -406,7 +407,7 @@ function WorkspaceContent() {
     } catch (err) {
       console.error('Reality check failed:', err);
       const msg = err instanceof Error ? err.message : 'Could not run reality check.';
-      alert(msg);
+      setErrorModal({ title: 'Reality check failed', body: msg });
     }
     setScoreLoading(false);
   }
@@ -1139,6 +1140,55 @@ function WorkspaceContent() {
           .artifact-content table { display: block; overflow-x: auto; }
         }
       `}</style>
+
+      {/* In-app error modal (replaces browser alert dialogs) */}
+      {errorModal && (
+        <div
+          onClick={() => setErrorModal(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(14,15,12,.6)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 480, width: '100%',
+              background: 'var(--paper-2)',
+              border: '1px solid var(--rule)',
+              borderRadius: 12, padding: '24px 28px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+            }}
+          >
+            <div style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 18, fontWeight: 600, marginBottom: 10, color: 'var(--ink)',
+            }}>
+              {errorModal.title}
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink)', marginBottom: 22 }}>
+              {errorModal.body}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setErrorModal(null)}
+                style={{
+                  padding: '10px 22px', background: 'var(--ink)', color: 'var(--paper)',
+                  border: 'none', borderRadius: 999, fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
