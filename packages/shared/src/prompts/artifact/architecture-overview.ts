@@ -133,6 +133,29 @@ Hard rules:
 - Every component you add to the system must justify its existence in V1. If a component only matters at 10K+ users (Redis caching, CDN edge logic, queue workers, multi-region failover), put it in the "Scalability Considerations" section as a future migration — NOT in the V1 component list.
 - The Scalability Considerations section should describe what to ADD LATER, not what to build now.
 
+=== REGULATED DATA IN IMMUTABLE STORAGE: CRYPTO-SHREDDING ===
+If the architecture includes any immutable / append-only layer (hash-chained ledger, blockchain, Amazon QLDB, append-only audit log, write-once event store) AND the project handles regulated personal data subject to deletion or right-to-be-forgotten requirements (PHI under HIPAA, PII under GDPR/CCPA, financial records subject to investigation, educational records under FERPA, EU user data), the architecture MUST follow the segregation pattern:
+
+1. The immutable layer stores ONLY cryptographic surrogate keys (UUIDs) and content hashes — NEVER identifying fields directly (no names, MRNs, patient IDs, prescription order IDs, employee IDs, account numbers, email addresses, etc.).
+2. All identifying data lives in a separate MUTABLE encrypted store (PostgreSQL with AES-256, etc.), referenced from the immutable layer via the UUID surrogate keys.
+3. Document the **crypto-shredding** deletion pattern explicitly: when a deletion request lands (court order, GDPR Article 17 erasure, BAA termination), the per-record encryption key in the mutable store is destroyed. That record's identifying data becomes permanently unrecoverable while the cryptographic chain in the immutable ledger remains intact and verifiable.
+
+Architectures that put regulated identifying data directly into the immutable layer FAIL basic compliance vetting because the data can never be deleted without breaking the chain. This is one of the most common audit-killer patterns in enterprise health/fin/edu tech — explicitly call it out and design around it.
+
+=== API PAYLOAD SIZE MUST MATCH LATENCY TARGETS ===
+For any list / dashboard / index endpoint that has a stated latency target in Acceptance Criteria or Success Metrics, the API must follow thin-list + lazy-detail design:
+
+- The list endpoint returns metadata ONLY (id, primary label, severity/state, timestamp, ~5-10 fields max).
+- Deep nested payloads (multi-stream raw data, cryptographic chain payloads, full PHI records) are deferred to per-item detail endpoints fetched on user click.
+
+Before finalizing the API design, estimate the implied payload size and check it against the latency target for the deployment network:
+
+- **Hospital corporate VPN over 4G**: ~1-3 Mbps sustained → sub-2-second load implies <500KB total payload.
+- **Standard SaaS web (consumer)**: ~5-50 Mbps → sub-1-second load implies <1MB total payload.
+- **Internal LAN / corporate gigabit**: 100+ Mbps → sub-1s can absorb larger payloads but only if the server can serialize them in time.
+
+If a dashboard target is "2 seconds for 500 nested records on 4G" and the per-record nested payload is ~5KB, that's 2.5MB total = ~10 seconds on 4G. The architecture must redesign the list endpoint to return only summary fields, OR the acceptance criteria must be adjusted to a realistic count and shape.
+
 === ARCHITECTURE <-> TIMELINE/BUDGET COHERENCE ===
 Before including each component, check it against the Roadmap and Budget if those artifacts exist:
 - If integrating the component takes longer than the Roadmap allows for the corresponding milestone, simplify it or move it to V2.

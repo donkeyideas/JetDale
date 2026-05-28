@@ -83,14 +83,31 @@ Any criterion involving real money, points/tokens, or any quantity that compound
 **Time-based acceptance criteria for distributed systems** (buffer windows, retry timeouts, sync intervals, TTLs, out-of-sequence reconciliation, watermarks) must reflect the real deployment environment, not lab/single-machine conditions. Default safe values to anchor against:
 
 - **Cellular / mobile IoT** (tablets, vehicles, field devices): assume **1-4 hour** disconnect tolerance is normal; tight buffers (10s, 1 min) will dump real data to dead-letter queues.
-- **Hospital / clinical networks**: assume **30-60 minute** scheduled maintenance windows on EHR / cabinet systems; buffer windows under 60 minutes will routinely fail to match real records.
+- **Hospital / clinical networks** (cellular nursing tablets, IoT cabinets, ICU equipment): design floor is the **worst-case operational outage**, not typical maintenance. Cellular-backed devices in ICUs routinely cache logs for **8-12+ hours** during shift-long network events; some configurations cache 24+ hours. Buffer / out-of-sequence reconciliation windows must be set to at least **24 hours** for the hospital IoT class. The 30-60 min EHR maintenance window is the *typical* case, not the design floor — sizing buffers to typical-maintenance will dump real records to dead-letter queues during the events the system most needs to capture.
 - **Field / construction / agriculture sensors**: assume **24+ hour** offline tolerance; design for store-and-forward, not real-time.
 - **Standard SaaS web clients**: assume few-second to few-minute hiccups; sub-minute buffers are fine.
 - **Multi-region cloud infrastructure**: assume occasional cross-region replication delay of seconds to minutes; sub-second consistency assumptions across regions are wrong without quorum / consensus.
 
 If the project's persona, vision, or scope mentions any of the higher-tolerance environments above, time-based criteria MUST be sized for that environment. A "10-second out-of-sequence buffer" is wrong for hospital IoT in the same way "1000 kWh per entry" is wrong for an apartment energy app — it's an arbitrary technical number disconnected from where the system actually runs.
 
-State the basis inline. Example: "Out-of-sequence events buffered for 60 minutes (basis: hospital EHR systems have routine 30-60 min maintenance windows; cellular tablets in ICUs may sync up to 2 hours late)."
+State the basis inline. Example: "Out-of-sequence events buffered for 24 hours (basis: cellular tablets in ICUs can be offline for an entire shift during network events; sliding watermark prevents real records from being dropped to DLQ during the exact incidents the system most needs to capture)."
+
+=== AUDIT-TRAIL EVENTS ARE APPEND-ONLY (NO STATE-ERASING OVERRIDES) ===
+For any acceptance criterion involving audit trails, compliance records, controlled-substance handling, financial transactions, or regulatory-reportable events, the UX MUST NOT allow a user to change a record's flagged state from anomaly/unmatched/disputed to resolved/matched/cleared. Anomalies, mismatches, and flagged events must remain permanently visible to investigators.
+
+Hard-forbidden UX patterns in audit/compliance contexts:
+- "Manual reconcile" / "manual override" / "dismiss anomaly" buttons that change record state
+- "Mark as resolved" actions that hide the original flag
+- "Edit" or "correct" actions that mutate the original event record
+- "Bulk clear" actions on flagged items
+
+Required pattern instead — **Attestation / Annotation**:
+- Users can ATTACH context to a flagged event: signed notes, supporting documents, photographs, video evidence, attestation from a second party.
+- The annotation travels alongside the original event but does NOT modify it. The original anomaly state remains permanently visible in the audit trail.
+- The event's display can show "Reviewed — annotated by [user] on [date]" but the flagged state itself never disappears.
+- Regulatory investigators reviewing the audit trail later see the original anomaly AND the attestations, never just the annotated post-state.
+
+This is a core insider-threat protection. A "manual override" button on a controlled-substance diversion alert lets the corrupt pharmacy manager whose theft triggered the alert wipe their own audit signal. Attestation-instead-of-override is the industry-standard pattern for audit logs that need to survive adversarial use.
 
 === CONSTRAINTS ===
 - Total length: 600-1000 words. Do not exceed 1000 words.
