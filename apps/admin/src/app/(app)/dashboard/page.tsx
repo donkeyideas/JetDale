@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { getProjectsForUser, deleteProject, saveProject, type JetdaleProject } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { loadProjectSummaries, syncProjectToSupabase, softDeleteProjectInSupabase } from '@/lib/supabase-storage';
+import { loadProjectSummaries, syncProjectToSupabase } from '@/lib/supabase-storage';
 
 const PHASE_LABELS: Record<string, string> = {
   discovery: 'Discovery', reality_check: 'Reality Check', artifacts: 'Generating...',
@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [renameValue, setRenameValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<JetdaleProject | null>(null);
   const [busy, setBusy] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ title: string; body: string } | null>(null);
   const supabase = useRef(createSupabaseBrowserClient());
 
   // Close the kebab menu on any click outside it.
@@ -91,14 +92,28 @@ export default function DashboardPage() {
   }
 
   async function confirmDelete() {
-    if (!deleteTarget || !userId) return;
+    if (!deleteTarget) return;
     setBusy(true);
     const target = deleteTarget;
-    setProjects((prev) => prev.filter((p) => p.id !== target.id));
-    deleteProject(target.id);
-    await softDeleteProjectInSupabase(target.id, userId).catch(() => {});
-    setBusy(false);
-    setDeleteTarget(null);
+    try {
+      const res = await fetch(`/api/projects/${target.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j.error as string) || `Delete failed with status ${res.status}`);
+      }
+      // Server confirmed the row is gone — now mirror that in local state.
+      setProjects((prev) => prev.filter((p) => p.id !== target.id));
+      deleteProject(target.id);
+      setDeleteTarget(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not delete project.';
+      setErrorModal({ title: 'Delete failed', body: msg });
+    } finally {
+      setBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -439,6 +454,52 @@ export default function DashboardPage() {
                 }}
               >
                 {busy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error modal */}
+      {errorModal && (
+        <div
+          onClick={() => setErrorModal(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 210,
+            background: 'rgba(14,15,12,.6)', backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 480, width: '100%',
+              background: 'var(--paper-2)',
+              border: '1px solid var(--rule)',
+              borderRadius: 12, padding: '24px 28px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+            }}
+          >
+            <div style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 18, fontWeight: 600, marginBottom: 10, color: 'var(--ink)',
+            }}>{errorModal.title}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink)', marginBottom: 22 }}>
+              {errorModal.body}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setErrorModal(null)}
+                style={{
+                  padding: '10px 22px', background: 'var(--ink)', color: 'var(--paper)',
+                  border: 'none', borderRadius: 999, fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                OK
               </button>
             </div>
           </div>
