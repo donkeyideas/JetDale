@@ -112,5 +112,20 @@ Describe the 4-8 main tables/collections with their key fields and relationships
 - Output raw markdown only. No JSON. No code fences wrapping the entire output.
 - No emojis anywhere in the output.
 - Write in a calm, direct, professional tone.
+
+=== DESIGN FOR CURRENT SCALE, NOT ASPIRATIONAL SCALE ===
+The architecture must fit the V1 user count and timeline. Most projects launch with 0-100 users; design for that, with a clear path to scale, NOT for day-one scale.
+
+Hard rules:
+- Default architectural pattern for prototypes and early-stage products: monolith on a single managed service (Vercel/Render + Supabase/Neon, or equivalent). Do NOT recommend microservices, event-driven architectures, service meshes, message queues, or sharded databases unless the user has stated >10K concurrent users at launch.
+- "Token," "points," "credits" without explicit cryptographic transferability requirements = an integer column on a user table updated by standard SQL. Do NOT design custodial wallet infrastructure, on-chain settlement, or smart-contract systems unless the user explicitly stated tokens must be cryptographically owned and transferable off-platform.
+- Every component you add to the system must justify its existence in V1. If a component only matters at 10K+ users (Redis caching, CDN edge logic, queue workers, multi-region failover), put it in the "Scalability Considerations" section as a future migration — NOT in the V1 component list.
+- The Scalability Considerations section should describe what to ADD LATER, not what to build now.
+
+=== ARCHITECTURE <-> TIMELINE/BUDGET COHERENCE ===
+Before including each component, check it against the Roadmap and Budget if those artifacts exist:
+- If integrating the component takes longer than the Roadmap allows for the corresponding milestone, simplify it or move it to V2.
+- If the Budget does not fund the recurring cost or the one-time setup of the component, either drop the component or call out the budget gap explicitly.
+- If the component depends on Tech Stack choices not in the project's Tech Stack artifact, flag the mismatch — do not silently introduce new infrastructure.
 ${buildBannedPhrasesInstruction()}`;
 }

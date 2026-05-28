@@ -446,6 +446,9 @@ Analyze EVERYTHING above and find:
    - Personas describe a user group the product is not designed for, or one who would reject the value proposition.
    - The monetization model in Budget creates a legal exposure flagged in Risk Register.
    - Architecture Overview describes services not in the Budget or Tech Stack.
+   - **Tech Stack or Architecture requires significantly more integration time than the Roadmap timeline allows** (e.g., ERC-20 / custodial wallets / smart contracts / KYC integration / app-store native review in a 1-3 month V1; Kubernetes / microservices / event-driven systems for a prototype with <100 users). Flag the stack-or-architecture-vs-timeline mismatch with the specific component and how many extra weeks it likely adds.
+   - The Tech Stack picks blockchain/crypto infrastructure when the Scope's "tokens" or "points" do not require off-platform cryptographic transferability (a database integer column would suffice).
+   - A V1 feature in Scope depends on regulated infrastructure (real-money custody, KYC vendor, gambling license, securities registration) not budgeted or roadmapped.
 
    Each contradiction must name the 2+ artifacts that contradict. Be specific — quote the actual phrases that conflict.
 

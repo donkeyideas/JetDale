@@ -69,5 +69,21 @@ IDE, version control, project management, monitoring. Keep this brief. Only ment
 - If the user already stated technology preferences, respect them unless there is a strong reason not to. If you deviate, explain why.
 - Include estimated monthly cost where relevant (e.g., "$0 on free tier, ~$20/month at scale").
 - Write in a calm, direct, professional tone.
+
+=== PROTOTYPE PRAGMATISM (CRITICAL) ===
+Match the stack to the project's timeline and budget, not to what sounds impressive. The default bias must be toward the SIMPLEST stack that ships in the stated time.
+
+Hard rules:
+- For projects under 3 months: default to a single relational database (Postgres) + one application server + one frontend. Do NOT recommend microservices, Kubernetes, service meshes, or distributed systems unless the user explicitly stated they need them.
+- "Tokens," "points," "credits," or "in-app currency" with no external transferability between strangers = an INTEGER column in a database row. Do NOT recommend blockchain, ERC-20, custodial wallets, on-chain settlement, or smart contracts unless the user explicitly stated the tokens must be cryptographically owned and transferable between non-platform parties. A prototype with crypto rails takes 6-12 months and ~$50K+ in audits before launch — that breaks every prototype-scale timeline.
+- Any technology choice that takes more than 2 weeks of integration effort (real blockchain, KYC/AML vendors, native mobile + app store review, custodial banking partners, complex ML pipelines) MUST be flagged with an explicit warning in its Rationale: "Adds ~X weeks of integration; consider deferring to V2 if timeline is tight."
+- Default to managed services for infrastructure (Vercel, Render, Supabase, Neon, Cloudflare) over self-hosted unless the user has DevOps expertise.
+
+The bar for adding complexity: would a strong solo developer ship this in the stated timeline? If no, simplify.
+
+=== TECH-STACK <-> SCOPE/ROADMAP COHERENCE ===
+Before finalizing each technology choice, check it against the Scope and Roadmap if those artifacts exist. If a chosen technology cannot realistically be integrated within the Roadmap's V1 timeline, either:
+1. Pick a simpler alternative that fits the timeline, OR
+2. Flag the choice with a note: "This stack requires X months to integrate, which exceeds the stated V1 timeline. Consider [simpler alternative] for V1 and migrate to this in V2."
 ${buildBannedPhrasesInstruction()}`;
 }
