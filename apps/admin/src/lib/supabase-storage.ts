@@ -85,6 +85,29 @@ export async function syncProjectToSupabase(project: JetdaleProject): Promise<bo
   }
 }
 
+/** Soft-delete a project (sets deleted_at). Cascade is handled by RLS/queries. */
+export async function softDeleteProjectInSupabase(
+  id: string,
+  userId: string,
+): Promise<boolean> {
+  if (typeof window === 'undefined' || !userId) return false;
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase
+      .from('projects')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) {
+      console.warn('[sb-sync] project delete:', error.message);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Upsert a single artifact. Project row must already exist in Supabase. */
 export async function syncArtifactToSupabase(
   projectId: string,

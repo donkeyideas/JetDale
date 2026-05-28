@@ -7,9 +7,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
-import { getProjectsForUser, type JetdaleProject } from '@/lib/storage';
+import { getProjectsForUser, deleteProject, saveProject, type JetdaleProject } from '@/lib/storage';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { loadProjectSummaries } from '@/lib/supabase-storage';
+import { loadProjectSummaries, syncProjectToSupabase, softDeleteProjectInSupabase } from '@/lib/supabase-storage';
 
 const PHASE_LABELS: Record<string, string> = {
   discovery: 'Discovery', reality_check: 'Reality Check', artifacts: 'Generating...',
@@ -37,13 +37,75 @@ function calcProgress(project: JetdaleProject): number {
 export default function DashboardPage() {
   const [projects, setProjects] = useState<JetdaleProject[]>([]);
   const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<JetdaleProject | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<JetdaleProject | null>(null);
+  const [busy, setBusy] = useState(false);
   const supabase = useRef(createSupabaseBrowserClient());
+
+  // Close the kebab menu on any click outside it.
+  useEffect(() => {
+    if (!openMenuId) return;
+    function handler(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`[data-card-id="${openMenuId}"]`)) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuId]);
+
+  function openRename(p: JetdaleProject, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setRenameTarget(p);
+    setRenameValue(p.name);
+  }
+
+  function openDelete(p: JetdaleProject, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setDeleteTarget(p);
+  }
+
+  async function confirmRename() {
+    if (!renameTarget) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === renameTarget.name) {
+      setRenameTarget(null);
+      return;
+    }
+    setBusy(true);
+    const updated = { ...renameTarget, name: trimmed };
+    setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+    saveProject(updated);
+    await syncProjectToSupabase(updated).catch(() => {});
+    setBusy(false);
+    setRenameTarget(null);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget || !userId) return;
+    setBusy(true);
+    const target = deleteTarget;
+    setProjects((prev) => prev.filter((p) => p.id !== target.id));
+    deleteProject(target.id);
+    await softDeleteProjectInSupabase(target.id, userId).catch(() => {});
+    setBusy(false);
+    setDeleteTarget(null);
+  }
 
   useEffect(() => {
     supabase.current.auth.getUser().then(({ data }) => {
       if (!data.user) { setLoading(false); return; }
       const uid = data.user.id;
+      setUserId(uid);
       const name = data.user.user_metadata?.full_name
         || data.user.email?.split('@')[0] || '';
       setUserName(name);
@@ -182,11 +244,12 @@ export default function DashboardPage() {
             <Link
               key={p.id}
               href={href}
+              data-card-id={p.id}
               style={{
                 background: 'var(--paper)', padding: '28px 32px',
-                display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1.2fr 80px',
+                display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1.2fr 36px 36px',
                 alignItems: 'center', gap: 24, textDecoration: 'none', color: 'var(--ink)',
-                transition: 'background .2s',
+                transition: 'background .2s', position: 'relative',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper)'; }}
@@ -237,11 +300,212 @@ export default function DashboardPage() {
                 {Object.values(p.artifacts).filter((a) => a.status === 'ready').length} of 17 ready
               </div>
 
+              {/* Kebab menu — actions outside the navigation click target */}
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  aria-label="Project actions"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setOpenMenuId((cur) => cur === p.id ? null : p.id);
+                  }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    border: 'none', background: 'transparent',
+                    cursor: 'pointer', color: 'var(--muted)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, lineHeight: 1,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-3)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  ⋮
+                </button>
+                {openMenuId === p.id && (
+                  <div
+                    style={{
+                      position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                      minWidth: 160, background: 'var(--paper)',
+                      border: '1px solid var(--rule)', borderRadius: 10,
+                      boxShadow: '0 8px 24px rgba(14,15,12,.12)',
+                      overflow: 'hidden', zIndex: 60,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => openRename(p, e)}
+                      style={{
+                        display: 'block', width: '100%', padding: '11px 16px',
+                        fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => openDelete(p, e)}
+                      style={{
+                        display: 'block', width: '100%', padding: '11px 16px',
+                        fontSize: 13, fontWeight: 500, color: 'var(--accent)',
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                        borderTop: '1px solid var(--rule)',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-2)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div style={{ fontSize: 24, textAlign: 'right', color: 'var(--muted)' }}>&rarr;</div>
             </Link>
           );
         })}
       </div>
+
+      {/* Rename modal */}
+      {renameTarget && (
+        <div
+          onClick={() => !busy && setRenameTarget(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(14,15,12,.6)', backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 480, width: '100%',
+              background: 'var(--paper-2)',
+              border: '1px solid var(--rule)',
+              borderRadius: 12, padding: '24px 28px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+            }}
+          >
+            <div style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 18, fontWeight: 600, marginBottom: 14, color: 'var(--ink)',
+            }}>
+              Rename project
+            </div>
+            <input
+              autoFocus
+              aria-label="Project name"
+              placeholder="Project name"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmRename();
+                if (e.key === 'Escape') setRenameTarget(null);
+              }}
+              style={{
+                width: '100%', padding: '11px 14px', fontSize: 14,
+                background: 'var(--paper)', border: '1px solid var(--rule)',
+                borderRadius: 8, color: 'var(--ink)', marginBottom: 22,
+                fontFamily: 'inherit',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setRenameTarget(null)}
+                disabled={busy}
+                style={{
+                  padding: '10px 18px', background: 'transparent',
+                  color: 'var(--ink)', border: '1px solid var(--rule)',
+                  borderRadius: 999, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRename}
+                disabled={busy}
+                style={{
+                  padding: '10px 22px', background: 'var(--ink)',
+                  color: 'var(--paper)', border: 'none',
+                  borderRadius: 999, fontWeight: 600, fontSize: 13,
+                  cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+                }}
+              >
+                {busy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div
+          onClick={() => !busy && setDeleteTarget(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(14,15,12,.6)', backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 480, width: '100%',
+              background: 'var(--paper-2)',
+              border: '1px solid var(--rule)',
+              borderRadius: 12, padding: '24px 28px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+            }}
+          >
+            <div style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 18, fontWeight: 600, marginBottom: 10, color: 'var(--ink)',
+            }}>
+              Delete project?
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink)', marginBottom: 22 }}>
+              This will permanently remove <strong title={deleteTarget.name}>{deleteTarget.name.length > 60 ? deleteTarget.name.slice(0, 57).trim() + '…' : deleteTarget.name}</strong> along with all its artifacts, chat, and reality checks. This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={busy}
+                style={{
+                  padding: '10px 18px', background: 'transparent',
+                  color: 'var(--ink)', border: '1px solid var(--rule)',
+                  borderRadius: 999, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={busy}
+                style={{
+                  padding: '10px 22px', background: 'var(--accent)',
+                  color: '#fff', border: 'none',
+                  borderRadius: 999, fontWeight: 600, fontSize: 13,
+                  cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+                }}
+              >
+                {busy ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

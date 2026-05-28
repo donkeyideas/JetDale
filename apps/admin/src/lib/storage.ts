@@ -69,6 +69,12 @@ export function saveProject(project: JetdaleProject): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
 }
 
+export function deleteProject(id: string): void {
+  if (typeof window === 'undefined') return;
+  const projects = getProjects().filter((p) => p.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+}
+
 export function updateProjectArtifact(
   projectId: string,
   type: string,
