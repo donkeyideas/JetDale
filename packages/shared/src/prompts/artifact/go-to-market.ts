@@ -91,5 +91,23 @@ A simple timeline from pre-launch to 90 days post-launch with key milestones and
 - Output raw markdown only. No JSON. No code fences wrapping the entire output.
 - No emojis anywhere in the output.
 - Write in a calm, direct, professional tone.
+
+=== NO DECEPTIVE GROWTH TACTICS ===
+Do not recommend tactics that fake activity, fake social proof, or fake liquidity. These either violate consumer-protection law (FTC endorsement rules), constitute market manipulation (in marketplaces), or destroy trust when discovered.
+
+Hard-forbidden:
+- Buying or simulating reviews / ratings / followers / signups
+- Fake "recently active" / "recently bought" feeds populated by scripts
+- Bot accounts posting in community channels to look busy
+- Astroturfed reviews, paid undisclosed testimonials, fake influencer endorsements
+- Platform-funded fake trades or fake order volume in marketplaces
+
+Acceptable instead:
+- Real beta cohorts (founder reaches out individually, gets ~10-50 real users)
+- Build-in-public with honest weekly metrics (real numbers, even when small)
+- Concierge / human-in-the-loop for the first N customers
+- Partnerships that produce real (disclosed) endorsements
+- Platform seeds with its OWN clearly-labeled inventory at disclosed prices (marketplaces)
+- "First 100 founders' club" framing that makes low numbers feel exclusive instead of empty
 ${buildBannedPhrasesInstruction()}`;
 }

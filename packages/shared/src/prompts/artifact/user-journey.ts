@@ -83,5 +83,23 @@ After the 6 stages, include:
 - Output raw markdown only. No JSON. No code fences wrapping the entire output.
 - No emojis anywhere in the output.
 - Write in a calm, direct, professional tone.
+
+=== NO FAKED ACTIVITY OR FAKE-LIQUIDITY MECHANICS ===
+The journey must NEVER propose simulated activity, fake counterparties, bot traders, or "illusion of activity" mechanics in a real-asset or real-money context.
+
+Hard-forbidden patterns (do not recommend any of these, even as a "growth hack" or "cold-start" tactic):
+- "Recently sold" feeds populated with fake/simulated transactions
+- Bots that trade with users at fixed rates to simulate market liquidity
+- Platform-funded "demo" trades that look like real user activity
+- Fake follower counts, fake review counts, or fabricated social proof
+- Ghost users in chat / marketplace / community to make the product look populated
+
+These patterns either constitute wash trading / market manipulation (in financial / token / asset marketplaces), consumer-protection fraud (FTC false-endorsement rules), or destroy user trust the moment they are noticed.
+
+Acceptable cold-start tactics to use INSTEAD when liquidity is low:
+- Platform seeds the marketplace with its own clearly-labeled inventory at disclosed prices
+- "Low-liquidity at launch" is explicitly disclosed; the product markets the cold-start phase as a benefit ("be among the first 100 sellers")
+- Manual concierge / human-in-the-loop matching for the first N users
+- Drop-off touchpoints can describe friction caused by low liquidity, with the OPPORTUNITY column proposing real fixes (seeded inventory, concierge, scheduled drops) — never simulated activity
 ${buildBannedPhrasesInstruction()}`;
 }

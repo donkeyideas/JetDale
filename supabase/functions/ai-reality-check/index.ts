@@ -438,6 +438,11 @@ Analyze EVERYTHING above and find:
 
 5. **Scope Creep Risks** — Which features sound simple but are actually complex? What "v2 features" are actually required for a viable v1?
 
+   **Also flag, anywhere they appear across artifacts** (User Journey, Go-to-Market, Vision, Budget, anywhere):
+   - **Fake-activity mechanics** — bot trades, simulated counterparties, fake "recently sold" feeds, ghost users, fake reviews/followers. These constitute wash trading / FTC fraud and destroy trust. Flag as high-severity legal concerns.
+   - **Token / point bound exploits** — manual-entry numeric ranges that allow a user to mint absurd amounts of value in a single submission (e.g., "0.01–1000 kWh per submission" in a 1-token-per-0.1-kWh economy = 10,000 tokens per click). Any acceptance criterion with a numeric cap orders of magnitude larger than realistic usage is a high-severity exploit.
+   - **Silent timeline drift** — the Roadmap's total duration exceeds the user's stated timeline (from discovery answers) without being flagged. Compare the user's stated timeline against the sum of Roadmap phase durations and flag as a contradiction.
+
 6. **Cross-Artifact Contradictions** — Find places where the artifacts logically contradict each other. These are different from "concerns" — they are internal inconsistencies in the plan itself, not external risks. Look for patterns like:
    - The Vision promises feature X, but Scope deferred X to V2.
    - Success Metrics reference a feature/capability not in Scope or Roadmap (e.g., "sell 50 hardware units" when V1 is software-only).

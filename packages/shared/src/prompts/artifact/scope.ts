@@ -71,6 +71,15 @@ For each Must Have feature, write 2-3 acceptance criteria that define "done." Us
 
 Criteria must be testable. "Works well" is not testable. "User can create an account with email and password in under 30 seconds" is testable.
 
+Criteria must also be DEFENSIBLE against real-world bounds. If a criterion involves a numeric range, rate, or threshold (input limits, daily caps, response times, payout amounts), the chosen number must reflect typical real-world usage — not an arbitrary round number. State the basis briefly inline. Examples:
+
+- BAD: "User can enter kWh saved between 0.01 and 1000 per submission." (1000 kWh is a month of household power — a single entry instantly mints absurd value.)
+- GOOD: "User can enter kWh saved between 0.01 and 8.0 per submission, capped at 3 entries per day. (Basis: a single appliance optimization typically saves under 5 kWh; 8.0 is a 60% safety margin; 3/day fits realistic logging behavior.)"
+- BAD: "Response time under 5 seconds." (Vague and obsolete; modern consumer apps target 200ms-1s.)
+- GOOD: "P95 button-press to visible response under 200ms; full data load under 1s on 4G."
+
+Any criterion involving real money, points/tokens, or any quantity that compounds across users must explicitly cap maximum per-action and per-day rates, or it will be exploitable on day one.
+
 === CONSTRAINTS ===
 - Total length: 600-1000 words. Do not exceed 1000 words.
 - Output raw markdown only. No JSON. No code fences wrapping the entire output.

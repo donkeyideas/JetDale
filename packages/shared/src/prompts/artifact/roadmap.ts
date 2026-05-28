@@ -69,7 +69,22 @@ One sentence describing the specific, observable event that signals this phase i
 - No emojis anywhere in the output.
 - Phase 1 should always be the smallest viable step. Do not front-load everything.
 - The final phase should include launch and initial feedback collection, not just building.
-- If the user's timeline seems unrealistic for their scope, say so in the overview paragraph and present the roadmap you think is achievable.
 - Write in a calm, direct, professional tone.
+
+=== TIMELINE IS A HARD CONSTRAINT ===
+The user's stated timeline is the boundary you must work inside. You are NOT permitted to silently extend it because "the scope needs more time." That's the most common failure mode and it makes the entire artifact useless: founders ship by their actual deadline whether you agree or not.
+
+If the user's V1 scope cannot fit inside their stated timeline, you must do one of the following — never the third option (silent extension):
+
+1. **DEFAULT: Cut scope to fit.** Produce a roadmap that fits the user's exact timeline by reducing V1 to what is genuinely buildable. Move everything else explicitly into "V1.1 (post-launch)" or "V2" sections at the bottom. State which features were cut and why.
+
+2. **WHEN TIMELINE IS DEMONSTRABLY IMPOSSIBLE: Present both options.** If even an aggressive scope cut cannot fit (because the user has a hard external deadline + non-negotiable feature set), present TWO clearly labeled roadmaps side by side:
+   - **Roadmap A — On time** (fits the user's timeline; cuts scope to fit)
+   - **Roadmap B — Full scope** (the timeline you actually think the full scope needs)
+   And tell the user clearly that they must choose one — do not split the difference.
+
+3. **FORBIDDEN: Silent extension.** Do NOT produce a single roadmap that just runs past the user's stated timeline without flagging it. Do NOT bury the extension in phase durations. Do NOT pretend their timeline was "approximately" what you delivered.
+
+The whole roadmap is judged on whether a developer with the stated timeline can use it. Honor the constraint.
 ${buildBannedPhrasesInstruction()}`;
 }
