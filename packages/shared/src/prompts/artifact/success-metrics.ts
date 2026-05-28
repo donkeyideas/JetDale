@@ -63,6 +63,21 @@ Then present each metric using a ## header:
 - No emojis anywhere in the output.
 - Write in a calm, direct, professional tone.
 
+=== V1 ATTAINABILITY (TARGET MUST MATCH WHAT V1 ACTUALLY SHIPS) ===
+A metric target that the V1 implementation cannot realistically hit is a worse metric than no metric — it bakes in a guaranteed failure on day one. Before setting each target, check the corresponding feature in Scope and ask: "what is the *maturity* of how V1 implements this?"
+
+V1 implementations are almost always less accurate than their steady-state versions. Adjust the target accordingly:
+
+- **Machine-learning models trained on synthetic / cold-start data**: V1 false-positive rates are typically 5-10× the steady-state target. A 2% FP goal in steady state translates to a 10-20% FP goal for the V1 cold-start phase, with an explicit improvement curve to 2% over 6-12 months of real-world data.
+- **Rules-based prototypes replacing future ML**: target precision/recall is set by what the rules can deterministically catch, not what the eventual ML aspiration would catch.
+- **Conversion / retention for a novel UX**: V1 conversion is typically 30-50% of the mature target as users learn the product.
+- **Performance / latency for an unoptimized first build**: V1 may take 2-5× the steady-state latency target until caching, indexing, and edge delivery are in place.
+- **Onboarding completion for a long flow**: V1 completion is typically 40-70% of mature once the funnel is optimized.
+
+For each metric, state the target in the form: "V1 target: [number, achievable with the V1 implementation in Scope]. Steady-state target (post-tuning): [number]. Basis: [the V1 implementation maturity in Scope]."
+
+If Scope describes the V1 implementation as "preliminary," "synthetic-data-trained," "manual," "concierge," or "rules-only," do NOT set a V1 target equal to the long-term ambition. That target belongs in Steady-state, not V1.
+
 === PERFORMANCE BENCHMARKS (USE MODERN, NOT 2015 NUMBERS) ===
 If the user is building consumer-facing software (mobile app, web app, PWA) where users are comparing against products like Robinhood, Instagram, TikTok, DoorDash, or DraftKings, performance targets MUST reflect 2026 expectations:
 

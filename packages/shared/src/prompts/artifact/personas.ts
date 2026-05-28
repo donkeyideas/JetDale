@@ -67,6 +67,16 @@ A single fictional quote (in italics) that captures this persona's core frustrat
 - Names should be simple and realistic. No clever puns.
 - Write in a calm, direct, professional tone.
 
+=== PAIN POINTS MUST BE TRACEABLE TO A FIX ===
+Every frustration you list for a persona is a load-bearing constraint on the rest of the plan — the architecture, scope, and acceptance criteria are expected to address it. If you state that James spends 40% of his week reconciling timestamps between two systems, the architecture must explicitly show how this product solves that; if Maria's frustration is approval lag, the workflow must show the faster path.
+
+For each persona, after the Frustrations section, add a one-line note tagged "Resolution requirement:" identifying the specific capability the rest of the plan must include to address that frustration. Examples:
+
+- "Resolution requirement: a canonical UTC ingestion layer that normalizes timestamps from all source systems before downstream evaluation."
+- "Resolution requirement: approval workflow with auto-routing based on amount thresholds — no manual triage on requests under $X."
+
+This makes downstream artifacts (architecture, scope) accountable for actually solving these problems instead of treating personas as decorative.
+
 === CRITICAL: NO ANTI-PERSONAS ===
 Every persona MUST be a plausible adopter of the product as described. They must actually want to use it.
 

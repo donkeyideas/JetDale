@@ -80,6 +80,18 @@ Criteria must also be DEFENSIBLE against real-world bounds. If a criterion invol
 
 Any criterion involving real money, points/tokens, or any quantity that compounds across users must explicitly cap maximum per-action and per-day rates, or it will be exploitable on day one.
 
+**Time-based acceptance criteria for distributed systems** (buffer windows, retry timeouts, sync intervals, TTLs, out-of-sequence reconciliation, watermarks) must reflect the real deployment environment, not lab/single-machine conditions. Default safe values to anchor against:
+
+- **Cellular / mobile IoT** (tablets, vehicles, field devices): assume **1-4 hour** disconnect tolerance is normal; tight buffers (10s, 1 min) will dump real data to dead-letter queues.
+- **Hospital / clinical networks**: assume **30-60 minute** scheduled maintenance windows on EHR / cabinet systems; buffer windows under 60 minutes will routinely fail to match real records.
+- **Field / construction / agriculture sensors**: assume **24+ hour** offline tolerance; design for store-and-forward, not real-time.
+- **Standard SaaS web clients**: assume few-second to few-minute hiccups; sub-minute buffers are fine.
+- **Multi-region cloud infrastructure**: assume occasional cross-region replication delay of seconds to minutes; sub-second consistency assumptions across regions are wrong without quorum / consensus.
+
+If the project's persona, vision, or scope mentions any of the higher-tolerance environments above, time-based criteria MUST be sized for that environment. A "10-second out-of-sequence buffer" is wrong for hospital IoT in the same way "1000 kWh per entry" is wrong for an apartment energy app — it's an arbitrary technical number disconnected from where the system actually runs.
+
+State the basis inline. Example: "Out-of-sequence events buffered for 60 minutes (basis: hospital EHR systems have routine 30-60 min maintenance windows; cellular tablets in ICUs may sync up to 2 hours late)."
+
 === CONSTRAINTS ===
 - Total length: 600-1000 words. Do not exceed 1000 words.
 - Output raw markdown only. No JSON. No code fences wrapping the entire output.

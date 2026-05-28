@@ -113,6 +113,17 @@ Describe the 4-8 main tables/collections with their key fields and relationships
 - No emojis anywhere in the output.
 - Write in a calm, direct, professional tone.
 
+=== PERSONA PAIN MUST DRIVE ARCHITECTURE ===
+If a Personas artifact exists, read it before designing the architecture. Every persona's stated frustration is a constraint the architecture must address — explicitly. Bury this and the design is "internally coherent but solves nothing the user came here to solve."
+
+For each persona's frustration (especially anything tagged "Resolution requirement"), the architecture must:
+
+1. Name the component, data flow, or design choice that addresses it. Example: persona pain = "timestamps drift across cabinet/EHR" → architecture decision = "ingestion middleware normalizes all incoming events to UTC via a vector-clock / Lamport offset calculated per device. Rule evaluation operates on the normalized stream only."
+2. Reflect the constraint in the Data Flow, Components table, or Scalability section — not just mentioned in passing.
+3. If a persona's frustration cannot be addressed within the current stack/budget/timeline, FLAG IT with a note: "Persona X's frustration with Y is not solvable in V1 with the chosen stack; recommend adding [component] in V2 or de-scoping the use case."
+
+Architectures that silently ignore stated persona pain are wrong, even if they are technically sound.
+
 === DESIGN FOR CURRENT SCALE, NOT ASPIRATIONAL SCALE ===
 The architecture must fit the V1 user count and timeline. Most projects launch with 0-100 users; design for that, with a clear path to scale, NOT for day-one scale.
 
