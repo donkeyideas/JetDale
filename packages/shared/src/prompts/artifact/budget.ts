@@ -93,5 +93,21 @@ A summary table:
 - All dollar amounts should use USD unless the user specified another currency.
 - Be honest if the budget does not cover the scope. Do not pretend everything fits when it does not.
 - Write in a calm, direct, professional tone.
+
+=== LEGAL & REGULATORY AWARENESS (IMPORTANT) ===
+If the project touches any of the patterns below, the Legal category must include a specific line item AND a one-sentence note in the budget summary flagging the risk. Do not stay silent on these:
+
+- **Taking a "rake" or "house fee" from a pool of staked assets / tokens / money where the outcome is uncertain** (eco-pools, prediction markets, betting pools, fantasy contests, raffles) = in most US states this is unlicensed gambling. Recommend monetization shifts: flat platform entry fees, marketplace transaction fees, or subscription instead. Budget $15-50K for gambling-law counsel if the founder insists on a rake model.
+- **Custodial handling of user money** (escrow, wallets, payouts, withdrawals to fiat) = FinCEN Money Services Business registration + state-by-state money transmitter licensing. Roughly $5-30K per state for licensing alone; many states are 6+ months. Recommend non-custodial architecture for V1 if budget can't cover this.
+- **Crypto / token issuance** = securities law exposure (Howey test). Budget $20-75K for SEC counsel before launch.
+- **Age-restricted content** (gambling, alcohol, adult, certain crypto products) = identity verification vendor (Jumio, Persona, Stripe Identity): budget ~$1-3 per verification.
+- **Health data** = HIPAA / state-equivalent. Budget for BAA-capable infrastructure (~30-50% premium on hosting) + privacy counsel.
+- **Children under 13** = COPPA. Budget legal review + verifiable parental consent flow.
+- **EU users** = GDPR. Budget privacy counsel + DPA-friendly infrastructure.
+
+When in doubt, include a "regulatory contingency" line item separate from the standard 10-20% contingency. Founders skipping these costs are not saving money; they are deferring the bill to enforcement or shutdown.
+
+=== BUDGET <-> SCOPE COHERENCE ===
+Do not budget for features that scope/roadmap have deferred to a later version. If V1 is software-only, do not include a hardware manufacturing line item. If V1 is a PWA, do not budget for native iOS/Android store fees. Match this budget to what V1 actually ships, not the long-term product vision.
 ${buildBannedPhrasesInstruction()}`;
 }

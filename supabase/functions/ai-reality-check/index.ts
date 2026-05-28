@@ -41,10 +41,19 @@ interface RealityCheckChange {
   change_description: string;
 }
 
+interface RealityCheckContradiction {
+  severity: 'high' | 'medium' | 'low';
+  title: string;
+  message: string;
+  artifacts_involved: string[];
+  suggested_action: string;
+}
+
 interface RealityCheckOutput {
   summary: string;
   concerns: RealityCheckConcern[];
   proposed_changes: RealityCheckChange[];
+  contradictions: RealityCheckContradiction[];
 }
 
 // ------------------------------------------------------------
@@ -232,8 +241,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Derive the Jetdale review score from the concerns.
-    const score = computeReviewScore(parsed.concerns);
+    // Derive the Jetdale review score from concerns + contradictions.
+    const score = computeReviewScore(parsed.concerns, parsed.contradictions);
 
     // ----------------------------------------------------------
     // 10. Persist to reality_checks table
@@ -253,6 +262,7 @@ Deno.serve(async (req) => {
         overall_score: score.overall,
         letter_grade: score.grade,
         axis_scores: score.axes,
+        contradictions: parsed.contradictions,
       })
       .select('id, created_at')
       .single();
@@ -316,6 +326,7 @@ Deno.serve(async (req) => {
       summary: parsed.summary,
       concerns: parsed.concerns,
       proposedChanges: parsed.proposed_changes,
+      contradictions: parsed.contradictions,
       score: score.overall,
       grade: score.grade,
       axes: score.axes,
@@ -389,6 +400,17 @@ Analyze EVERYTHING above and find:
 
 5. **Scope Creep Risks** — Which features sound simple but are actually complex? What "v2 features" are actually required for a viable v1?
 
+6. **Cross-Artifact Contradictions** — Find places where the artifacts logically contradict each other. These are different from "concerns" — they are internal inconsistencies in the plan itself, not external risks. Look for patterns like:
+   - The Vision promises feature X, but Scope deferred X to V2.
+   - Success Metrics reference a feature/capability not in Scope or Roadmap (e.g., "sell 50 hardware units" when V1 is software-only).
+   - Budget allocates money for something Scope dropped.
+   - Roadmap milestone assumes a capability the Tech Stack does not include.
+   - Personas describe a user group the product is not designed for, or one who would reject the value proposition.
+   - The monetization model in Budget creates a legal exposure flagged in Risk Register.
+   - Architecture Overview describes services not in the Budget or Tech Stack.
+
+   Each contradiction must name the 2+ artifacts that contradict. Be specific — quote the actual phrases that conflict.
+
 === OUTPUT FORMAT ===
 Respond with ONLY a valid JSON object (no markdown fences, no text before or after). Use this exact structure:
 
@@ -408,6 +430,15 @@ Respond with ONLY a valid JSON object (no markdown fences, no text before or aft
       "artifact_type": "budget",
       "change_description": "Specific change that should be made to this artifact."
     }
+  ],
+  "contradictions": [
+    {
+      "severity": "high",
+      "title": "Vision promises hardware dongle but Scope is software-only",
+      "message": "Vision statement says the V1 ships with a $10 analog hardware attachment. Scope explicitly defers all hardware to V2. Success Metrics lists 'sell 50 hardware attachments' as a V1 target.",
+      "artifacts_involved": ["vision", "scope", "success_metrics"],
+      "suggested_action": "Pick one: either ship hardware in V1 (update Scope and Budget) or remove hardware from Vision and Success Metrics."
+    }
   ]
 }
 
@@ -417,6 +448,7 @@ Respond with ONLY a valid JSON object (no markdown fences, no text before or aft
 - artifact_type in proposed_changes must match actual artifact types: vision, scope, personas, competitive_analysis, user_journey, roadmap, tech_stack, architecture_overview, wireframes, raci_matrix, success_metrics, budget, go_to_market, risk_register, decision_log, pre_mortem, pitch_deck
 - You MUST return at least 5 concerns. If your initial draft has fewer than 5, look harder at: legal/regulatory exposure (licensing, age verification, KYC/AML, jurisdiction), money handling (escrow, custodial accounts, payouts, taxes), single points of failure (one developer, one payment provider, one channel), market reality (will real users pay this price? what does the leader cost?), and timeline math (does the roadmap actually fit the budget?). Returning fewer than 5 concerns means you did not do your job. Maximum 12 — quality matters, but err on finding more.
 - Include 2-6 proposed changes. Only suggest changes that would meaningfully improve the plan.
+- Include 0-8 contradictions. Only include genuine internal inconsistencies — do not pad with stylistic disagreements. Zero contradictions is acceptable IF the plan is genuinely coherent; check carefully before claiming so.
 - Be specific. Reference actual numbers, features, and statements from the documents.
 - Do not soften bad news. If the budget is wildly insufficient, say so clearly.
 - Do not use these phrases: delve, leverage, robust, cutting-edge, seamless, navigate, harness, unlock, game-changer, paradigm, synergy, holistic.
@@ -519,10 +551,30 @@ function sanitizeOutput(output: RealityCheckOutput): RealityCheckOutput {
       change_description: ch.change_description.slice(0, 2000),
     }));
 
+  const contradictions = (output.contradictions || [])
+    .filter(
+      (c) =>
+        c &&
+        typeof c.title === 'string' &&
+        typeof c.message === 'string',
+    )
+    .map((c) => ({
+      severity: validSeverities.has(c.severity) ? c.severity : 'medium',
+      title: c.title.slice(0, 200),
+      message: c.message.slice(0, 2000),
+      artifacts_involved: Array.isArray(c.artifacts_involved)
+        ? c.artifacts_involved
+            .filter((a: unknown) => typeof a === 'string')
+            .slice(0, 6) as string[]
+        : [],
+      suggested_action: (c.suggested_action || '').slice(0, 1000),
+    })) as RealityCheckContradiction[];
+
   return {
     summary: (output.summary || '').slice(0, 1000),
     concerns,
     proposed_changes: proposedChanges,
+    contradictions,
   };
 }
 
@@ -570,7 +622,10 @@ function letterFromScore(score: number): ReviewScore['grade'] {
   return 'F';
 }
 
-function computeReviewScore(concerns: RealityCheckConcern[]): ReviewScore {
+function computeReviewScore(
+  concerns: RealityCheckConcern[],
+  contradictions: RealityCheckContradiction[],
+): ReviewScore {
   const axes: AxisScores = {
     clarity: 100,
     feasibility: 100,
@@ -583,6 +638,13 @@ function computeReviewScore(concerns: RealityCheckConcern[]): ReviewScore {
     const axis = AREA_TO_AXIS[c.area] ?? 'riskReadiness';
     const deduction = SEVERITY_DEDUCTION[c.severity] ?? 5;
     axes[axis] = Math.max(0, axes[axis] - deduction);
+  }
+
+  // Internal contradictions are inherently a clarity failure — a plan that
+  // contradicts itself cannot be a clear plan, regardless of other strengths.
+  for (const c of contradictions) {
+    const deduction = SEVERITY_DEDUCTION[c.severity] ?? 5;
+    axes.clarity = Math.max(0, axes.clarity - deduction);
   }
 
   const overall = Math.round(

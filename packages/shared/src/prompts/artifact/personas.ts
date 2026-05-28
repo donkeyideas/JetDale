@@ -66,5 +66,12 @@ A single fictional quote (in italics) that captures this persona's core frustrat
 - No generic personas. Every detail must connect to what the user described about their audience and problem.
 - Names should be simple and realistic. No clever puns.
 - Write in a calm, direct, professional tone.
+
+=== CRITICAL: NO ANTI-PERSONAS ===
+Every persona MUST be a plausible adopter of the product as described. They must actually want to use it.
+
+Do NOT include "diversity" or "skeptic" personas who reject the product's core value proposition (e.g., a privacy-obsessed user for a social network, a gambling-averse user for a betting app, a Luddite for an AI tool). A persona who would not use this product is not a user — they are an objection, and they belong in the risk register, not here. Including them wastes the founder's design budget on features for someone who is never going to convert.
+
+If the user described only one target adopter type, generate 2-3 variations within that type (power user vs casual, early adopter vs mainstream, individual vs team) — not opposites. If the user described conflicting adopter types, pick the most likely primary user and segment them; flag the conflict in the persona's notes rather than splitting into incompatible personas.
 ${buildBannedPhrasesInstruction()}`;
 }

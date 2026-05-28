@@ -84,11 +84,20 @@ type AxisScores = {
   buildReadiness: number;
 };
 
+type Contradiction = {
+  severity: 'high' | 'medium' | 'low';
+  title: string;
+  message: string;
+  artifacts_involved: string[];
+  suggested_action: string;
+};
+
 type ReviewScoreState = {
   overall: number;
   grade: string;
   axes: AxisScores | null;
   concernCount: number;
+  contradictions: Contradiction[];
   createdAt: string;
 };
 
@@ -112,6 +121,16 @@ function axisColor(value: number): string {
   if (value >= 80) return '#22c55e';
   if (value >= 60) return '#C9A227';
   return '#FF5B1F';
+}
+
+function severityColor(sev: string): string {
+  if (sev === 'high') return '#FF5B1F';
+  if (sev === 'medium') return '#C9A227';
+  return '#6B6B62';
+}
+
+function humanizeArtifactType(t: string): string {
+  return t.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 /** Extract milestones from a roadmap markdown (looks for "Milestone:" lines or phase headers) */
@@ -213,7 +232,7 @@ function WorkspaceContent() {
     const supa = createSupabaseBrowserClient();
     supa
       .from('reality_checks')
-      .select('overall_score, letter_grade, axis_scores, concerns, created_at')
+      .select('overall_score, letter_grade, axis_scores, concerns, contradictions, created_at')
       .eq('project_id', project.id)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -226,6 +245,7 @@ function WorkspaceContent() {
           grade: (data.letter_grade as string) ?? 'F',
           axes: (data.axis_scores as AxisScores) ?? null,
           concernCount: Array.isArray(data.concerns) ? (data.concerns as unknown[]).length : 0,
+          contradictions: Array.isArray(data.contradictions) ? (data.contradictions as Contradiction[]) : [],
           createdAt: data.created_at as string,
         });
       });
@@ -378,6 +398,7 @@ function WorkspaceContent() {
           grade: data.grade ?? 'F',
           axes: data.axes ?? null,
           concernCount: Array.isArray(data.concerns) ? data.concerns.length : 0,
+          contradictions: Array.isArray(data.contradictions) ? (data.contradictions as Contradiction[]) : [],
           createdAt: data.createdAt ?? new Date().toISOString(),
         });
         setScoreOpen(true);
@@ -701,6 +722,60 @@ function WorkspaceContent() {
             Derived from {reviewScore.concernCount} concern{reviewScore.concernCount === 1 ? '' : 's'} in the latest reality check
             {reviewScore.createdAt ? ` (${new Date(reviewScore.createdAt).toLocaleString()})` : ''}.
           </div>
+        </div>
+      )}
+
+      {/* Cross-artifact contradictions — always show when present */}
+      {reviewScore && reviewScore.contradictions.length > 0 && (
+        <div style={{
+          marginTop: 16, padding: 20,
+          border: '1px solid var(--rule)', borderRadius: 8,
+          background: 'var(--paper)', flexShrink: 0,
+        }}>
+          <div style={{
+            fontFamily: "'Space Mono', monospace", fontSize: 10,
+            letterSpacing: '.12em', textTransform: 'uppercase',
+            color: 'var(--accent)', marginBottom: 12,
+          }}>
+            ⚠ {reviewScore.contradictions.length} Contradiction{reviewScore.contradictions.length === 1 ? '' : 's'} — places the artifacts disagree
+          </div>
+          {reviewScore.contradictions.map((c, i) => (
+            <div
+              key={i}
+              style={{
+                borderTop: i > 0 ? '1px solid var(--rule)' : 'none',
+                padding: i > 0 ? '14px 0 4px' : '0 0 4px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: severityColor(c.severity), flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{c.title}</span>
+              </div>
+              {c.artifacts_involved.length > 0 && (
+                <div style={{
+                  fontFamily: "'Space Mono', monospace", fontSize: 10,
+                  letterSpacing: '.1em', textTransform: 'uppercase',
+                  color: 'var(--muted)', marginBottom: 6, marginLeft: 16,
+                }}>
+                  Affects: {c.artifacts_involved.map(humanizeArtifactType).join(' · ')}
+                </div>
+              )}
+              <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', marginLeft: 16 }}>
+                {c.message}
+              </div>
+              {c.suggested_action && (
+                <div style={{
+                  fontSize: 12, lineHeight: 1.5,
+                  color: 'var(--muted)', marginTop: 6, marginLeft: 16, fontStyle: 'italic',
+                }}>
+                  → {c.suggested_action}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
