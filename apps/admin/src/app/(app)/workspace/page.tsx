@@ -170,7 +170,7 @@ function WorkspaceContent() {
   const [chatInput, setChatInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [shareLabel, setShareLabel] = useState('Share');
-  const [exportLabel, setExportLabel] = useState('Export to Claude Code');
+  const [exportLabel, setExportLabel] = useState('Export');
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [regenerating, setRegenerating] = useState(false);
@@ -444,7 +444,7 @@ function WorkspaceContent() {
 
     navigator.clipboard.writeText(exportDoc);
     setExportLabel('Copied!');
-    setTimeout(() => setExportLabel('Export to Claude Code'), 2000);
+    setTimeout(() => setExportLabel('Export'), 2000);
   }
 
   // ---- Regenerate: re-generate the active artifact via API ----
@@ -680,7 +680,7 @@ function WorkspaceContent() {
             onClick={handleExport}
             style={{ padding: '10px 18px', border: '1px solid var(--accent)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: 'white', cursor: 'pointer', transition: 'all .15s' }}
           >
-            {exportLabel} {exportLabel === 'Export to Claude Code' && <>&rarr;</>}
+            {exportLabel}{exportLabel === 'Export' && <> &rarr;</>}
           </button>
         </div>
       </div>
