@@ -133,6 +133,32 @@ function humanizeArtifactType(t: string): string {
   return t.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
+// ---- Builder marketplace types ------------------------------------
+
+type BuilderRecommendation = {
+  name: string;
+  category: 'ai-coding-tool' | 'agency' | 'talent-platform' | 'marketplace';
+  description: string;
+  fit_reason: string;
+  price_range: string;
+  action_url: string;
+  jetdale_team?: boolean;
+};
+
+const BUILDER_CATEGORY_LABEL: Record<BuilderRecommendation['category'], string> = {
+  'ai-coding-tool': 'AI coding tool',
+  agency: 'Agency',
+  'talent-platform': 'Talent platform',
+  marketplace: 'Marketplace',
+};
+
+const BUILDER_LOADING_STEPS = [
+  'Reading your vision and scope…',
+  'Matching to agencies and tools…',
+  'Checking AI coding platforms…',
+  'Ranking by fit for your project…',
+];
+
 /** Extract milestones from a roadmap markdown (looks for "Milestone:" lines or phase headers) */
 function extractMilestones(roadmapMd: string): Milestone[] {
   const milestones: Milestone[] = [];
@@ -224,8 +250,24 @@ function WorkspaceContent() {
   // ---- Jetdale review score state ----
   const [reviewScore, setReviewScore] = useState<ReviewScoreState | null>(null);
   const [scoreOpen, setScoreOpen] = useState(false);
+  const [contradictionsOpen, setContradictionsOpen] = useState(false);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [errorModal, setErrorModal] = useState<{ title: string; body: string } | null>(null);
+  const [buildersOpen, setBuildersOpen] = useState(false);
+  const [builders, setBuilders] = useState<BuilderRecommendation[] | null>(null);
+  const [buildersLoading, setBuildersLoading] = useState(false);
+  const [builderLoadingStep, setBuilderLoadingStep] = useState(0);
+
+  // Cycle through the loading messages while the API call is in flight,
+  // so the modal clearly looks like work is happening (not frozen).
+  useEffect(() => {
+    if (!buildersLoading) return;
+    setBuilderLoadingStep(0);
+    const id = setInterval(() => {
+      setBuilderLoadingStep((s) => (s + 1) % BUILDER_LOADING_STEPS.length);
+    }, 2200);
+    return () => clearInterval(id);
+  }, [buildersLoading]);
 
   // Fetch the latest reality_check's score for this project.
   useEffect(() => {
@@ -361,6 +403,33 @@ function WorkspaceContent() {
     navigator.clipboard.writeText(summary);
     setShareLabel('Copied!');
     setTimeout(() => setShareLabel('Share'), 2000);
+  }
+
+  // ---- Find a builder: ask DeepSeek for honest, project-fit recommendations ----
+  async function handleFindBuilder() {
+    if (!project) return;
+    setBuildersOpen(true);
+    if (builders) return; // cached from earlier click
+    setBuildersLoading(true);
+    try {
+      const res = await fetch('/api/builders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err.error as string) || `Builder lookup failed (${res.status})`);
+      }
+      const data = await res.json();
+      setBuilders(Array.isArray(data.builders) ? data.builders : []);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not load builders.';
+      setBuildersOpen(false);
+      setErrorModal({ title: 'Could not load builders', body: msg });
+    }
+    setBuildersLoading(false);
   }
 
   // ---- Reality check: invoke the edge function, save score to DB ----
@@ -677,6 +746,13 @@ function WorkspaceContent() {
             {scoreLoading ? 'Running…' : 'Reality check'}
           </button>
           <button
+            type="button"
+            onClick={handleFindBuilder}
+            style={{ padding: '10px 18px', border: '1px solid var(--rule)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--paper)', cursor: 'pointer', transition: 'all .15s' }}
+          >
+            Find a builder
+          </button>
+          <button
             onClick={handleExport}
             style={{ padding: '10px 18px', border: '1px solid var(--accent)', borderRadius: 999, fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: 'white', cursor: 'pointer', transition: 'all .15s' }}
           >
@@ -726,57 +802,79 @@ function WorkspaceContent() {
         </div>
       )}
 
-      {/* Cross-artifact contradictions — always show when present */}
+      {/* Cross-artifact contradictions — collapsed by default so the artifact
+          viewer below stays reachable. Click the header to expand the list. */}
       {reviewScore && reviewScore.contradictions.length > 0 && (
         <div style={{
-          marginTop: 16, padding: 20,
+          marginTop: 16,
           border: '1px solid var(--rule)', borderRadius: 8,
           background: 'var(--paper)', flexShrink: 0,
+          maxHeight: contradictionsOpen ? '40vh' : undefined,
+          overflowY: contradictionsOpen ? 'auto' : 'visible',
         }}>
-          <div style={{
-            fontFamily: "'Space Mono', monospace", fontSize: 10,
-            letterSpacing: '.12em', textTransform: 'uppercase',
-            color: 'var(--accent)', marginBottom: 12,
-          }}>
-            ⚠ {reviewScore.contradictions.length} Contradiction{reviewScore.contradictions.length === 1 ? '' : 's'} — places the artifacts disagree
-          </div>
-          {reviewScore.contradictions.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                borderTop: i > 0 ? '1px solid var(--rule)' : 'none',
-                padding: i > 0 ? '14px 0 4px' : '0 0 4px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: severityColor(c.severity), flexShrink: 0,
-                }} />
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{c.title}</span>
-              </div>
-              {c.artifacts_involved.length > 0 && (
-                <div style={{
-                  fontFamily: "'Space Mono', monospace", fontSize: 10,
-                  letterSpacing: '.1em', textTransform: 'uppercase',
-                  color: 'var(--muted)', marginBottom: 6, marginLeft: 16,
-                }}>
-                  Affects: {c.artifacts_involved.map(humanizeArtifactType).join(' · ')}
+          <button
+            type="button"
+            onClick={() => setContradictionsOpen((o) => !o)}
+            style={{
+              width: '100%', padding: '14px 20px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              textAlign: 'left',
+            }}
+          >
+            <span style={{
+              fontFamily: "'Space Mono', monospace", fontSize: 10,
+              letterSpacing: '.12em', textTransform: 'uppercase',
+              color: 'var(--accent)',
+            }}>
+              ⚠ {reviewScore.contradictions.length} Contradiction{reviewScore.contradictions.length === 1 ? '' : 's'} — places the artifacts disagree
+            </span>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>
+              {contradictionsOpen ? 'Hide ▲' : 'Show ▼'}
+            </span>
+          </button>
+
+          {contradictionsOpen && (
+            <div style={{ padding: '0 20px 20px' }}>
+              {reviewScore.contradictions.map((c, i) => (
+                <div
+                  key={i}
+                  style={{
+                    borderTop: '1px solid var(--rule)',
+                    padding: '14px 0 4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: severityColor(c.severity), flexShrink: 0,
+                    }} />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{c.title}</span>
+                  </div>
+                  {c.artifacts_involved.length > 0 && (
+                    <div style={{
+                      fontFamily: "'Space Mono', monospace", fontSize: 10,
+                      letterSpacing: '.1em', textTransform: 'uppercase',
+                      color: 'var(--muted)', marginBottom: 6, marginLeft: 16,
+                    }}>
+                      Affects: {c.artifacts_involved.map(humanizeArtifactType).join(' · ')}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', marginLeft: 16 }}>
+                    {c.message}
+                  </div>
+                  {c.suggested_action && (
+                    <div style={{
+                      fontSize: 12, lineHeight: 1.5,
+                      color: 'var(--muted)', marginTop: 6, marginLeft: 16, fontStyle: 'italic',
+                    }}>
+                      → {c.suggested_action}
+                    </div>
+                  )}
                 </div>
-              )}
-              <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', marginLeft: 16 }}>
-                {c.message}
-              </div>
-              {c.suggested_action && (
-                <div style={{
-                  fontSize: 12, lineHeight: 1.5,
-                  color: 'var(--muted)', marginTop: 6, marginLeft: 16, fontStyle: 'italic',
-                }}>
-                  → {c.suggested_action}
-                </div>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -1140,6 +1238,152 @@ function WorkspaceContent() {
           .artifact-content table { display: block; overflow-x: auto; }
         }
       `}</style>
+
+      {/* Builder marketplace modal */}
+      {buildersOpen && (
+        <div
+          onClick={() => setBuildersOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 190,
+            background: 'rgba(14,15,12,.6)',
+            backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: '48px 16px', overflowY: 'auto',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 760, background: 'var(--paper-2)',
+              border: '1px solid var(--rule)', borderRadius: 12,
+              boxShadow: '0 24px 60px rgba(0,0,0,.35)', overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '22px 28px 4px',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: "'Bricolage Grotesque', sans-serif",
+                  fontSize: 20, fontWeight: 600, color: 'var(--ink)', marginBottom: 6,
+                }}>
+                  Builders who can ship this
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  Suggestions ranked by genuine fit for your project. Donkey Ideas (the team behind Jetdale) is included transparently — we earn 0% commission on these recommendations.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBuildersOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--muted)', lineHeight: 1, flexShrink: 0 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {buildersLoading && (
+                <div style={{
+                  padding: '48px 24px',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', gap: 18, textAlign: 'center',
+                }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    border: '3px solid var(--paper-3)',
+                    borderTopColor: 'var(--accent)',
+                    animation: 'spin 0.9s linear infinite',
+                    flexShrink: 0,
+                  }} />
+                  <div style={{
+                    fontSize: 14, fontWeight: 500, color: 'var(--ink)',
+                    minHeight: 21,
+                    transition: 'opacity .2s',
+                  }}>
+                    {BUILDER_LOADING_STEPS[builderLoadingStep]}
+                  </div>
+                  <div style={{
+                    fontFamily: "'Space Mono', monospace", fontSize: 10,
+                    letterSpacing: '.15em', textTransform: 'uppercase',
+                    color: 'var(--muted)',
+                  }}>
+                    Usually 10–15 seconds
+                  </div>
+                </div>
+              )}
+
+              {!buildersLoading && builders && builders.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                  No recommendations came back. Try again.
+                </div>
+              )}
+
+              {!buildersLoading && builders && builders.map((b, i) => (
+                <a
+                  key={`${b.name}-${i}`}
+                  href={b.action_url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block', textDecoration: 'none', color: 'var(--ink)',
+                    padding: '16px 18px',
+                    background: 'var(--paper)',
+                    border: b.jetdale_team ? '1px solid var(--accent)' : '1px solid var(--rule)',
+                    borderRadius: 10,
+                    transition: 'background .15s',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper-3)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--paper)'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 16, fontWeight: 600 }}>
+                        {b.name}
+                      </span>
+                      {b.jetdale_team && (
+                        <span style={{
+                          fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700,
+                          letterSpacing: '.12em', textTransform: 'uppercase',
+                          padding: '3px 8px', borderRadius: 999,
+                          background: 'var(--accent)', color: '#fff',
+                        }}>
+                          Built by Jetdale's team
+                        </span>
+                      )}
+                      <span style={{
+                        fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700,
+                        letterSpacing: '.1em', textTransform: 'uppercase',
+                        padding: '3px 8px', borderRadius: 999,
+                        background: 'var(--paper-2)', color: 'var(--muted)', border: '1px solid var(--rule)',
+                      }}>
+                        {BUILDER_CATEGORY_LABEL[b.category] ?? b.category}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontFamily: "'Space Mono', monospace", fontSize: 11, fontWeight: 700,
+                      color: 'var(--ink)',
+                    }}>
+                      {b.price_range}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, marginBottom: 6 }}>
+                    {b.description}
+                  </div>
+                  <div style={{
+                    fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, fontStyle: 'italic',
+                  }}>
+                    Fit: {b.fit_reason}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* In-app error modal (replaces browser alert dialogs) */}
       {errorModal && (

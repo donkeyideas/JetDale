@@ -107,6 +107,11 @@ input, textarea {
   background: var(--muted);
 }
 
+/* Spinner rotation — used by loading indicators across the app */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ============================================================
    Responsive — retrofits mobile support onto the inline-styled
    app. Inline styles can't carry media queries, so these global
