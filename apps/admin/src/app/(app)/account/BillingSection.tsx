@@ -185,6 +185,12 @@ export default function BillingSection() {
     clientSecret: string; subscriptionId: string; planLabel: string; priceLabel: string;
   } | null>(null);
 
+  // Promo code state — validated client-side before the subscription is created.
+  const [promoInput, setPromoInput] = useState('');
+  const [promoValidated, setPromoValidated] = useState<{ id: string; code: string; label: string } | null>(null);
+  const [promoErr, setPromoErr] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.current.auth.getUser();
     if (!user) { setLoading(false); return; }
@@ -235,7 +241,11 @@ export default function BillingSection() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tier: plan.tier, interval }),
+        body: JSON.stringify({
+          tier: plan.tier,
+          interval,
+          ...(promoValidated ? { promotionCodeId: promoValidated.id } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Could not start checkout.');
@@ -250,6 +260,34 @@ export default function BillingSection() {
       setMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Something went wrong.' });
     }
     setBusy(false);
+  }
+
+  async function handleApplyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoErr(null);
+    try {
+      const res = await fetch('/api/billing/validate-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ code }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Invalid promo code.');
+      setPromoValidated({ id: json.promotionCodeId, code: json.code, label: json.label });
+      setPromoInput('');
+    } catch (e) {
+      setPromoErr(e instanceof Error ? e.message : 'Could not validate code.');
+    }
+    setPromoLoading(false);
+  }
+
+  function handleClearPromo() {
+    setPromoValidated(null);
+    setPromoErr(null);
+    setPromoInput('');
   }
 
   async function handlePaymentSuccess() {
@@ -377,6 +415,74 @@ export default function BillingSection() {
                       {opt === 'monthly' ? 'Monthly' : 'Annual'}
                     </button>
                   ))}
+                </div>
+                {/* Promo code */}
+                <div style={{ marginBottom: 16 }}>
+                  {promoValidated ? (
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      gap: 12, padding: '10px 14px', borderRadius: 8,
+                      background: 'rgba(122,138,84,.08)', border: '1px solid rgba(122,138,84,.3)',
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{
+                          fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.12em',
+                          textTransform: 'uppercase', color: 'var(--moss)',
+                        }}>
+                          {promoValidated.code} applied
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--ink)', marginTop: 2 }}>
+                          {promoValidated.label}
+                        </div>
+                      </div>
+                      <button type="button" onClick={handleClearPromo} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.12em',
+                        textTransform: 'uppercase', color: 'var(--muted)',
+                      }}>
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ ...labelStyle, marginBottom: 6 }}>Have a promo code?</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoErr(null); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApplyPromo(); } }}
+                          placeholder="ENTER CODE"
+                          disabled={promoLoading}
+                          style={{
+                            flex: 1, padding: '10px 12px', borderRadius: 8,
+                            border: '1px solid var(--rule)', background: 'var(--paper-2)',
+                            fontSize: 13, fontFamily: MONO, letterSpacing: '.08em',
+                            color: 'var(--ink)', textTransform: 'uppercase',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={promoLoading || !promoInput.trim()}
+                          style={{
+                            background: 'var(--ink)', color: 'var(--paper)', border: 'none',
+                            padding: '10px 18px', borderRadius: 8, fontWeight: 600, fontSize: 13,
+                            cursor: promoLoading ? 'default' : 'pointer',
+                            opacity: promoLoading || !promoInput.trim() ? 0.5 : 1,
+                            fontFamily: 'inherit', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {promoLoading ? 'Checking…' : 'Apply'}
+                        </button>
+                      </div>
+                      {promoErr && (
+                        <div style={{ fontSize: 12, color: 'var(--accent)', marginTop: 6 }}>
+                          {promoErr}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 {/* Plan options */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

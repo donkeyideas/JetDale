@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const user = await verifyUser(req);
   if (isErrorResponse(user)) return user;
 
-  let body: { interval?: string; tier?: string };
+  let body: { interval?: string; tier?: string; promotionCodeId?: string };
   try {
     body = await req.json();
   } catch {
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   }
   const interval: 'monthly' | 'annual' = body.interval === 'annual' ? 'annual' : 'monthly';
   const tier = body.tier === 'team' ? 'team' : 'pro';
+  const promotionCodeId = typeof body.promotionCodeId === 'string' ? body.promotionCodeId : undefined;
 
   const priceId = await getPriceId(tier, interval);
   if (!priceId) {
@@ -39,10 +40,16 @@ export async function POST(req: NextRequest) {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
+      discounts: promotionCodeId ? [{ promotion_code: promotionCodeId }] : undefined,
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
-      metadata: { user_id: user.id, interval, tier },
+      metadata: {
+        user_id: user.id,
+        interval,
+        tier,
+        ...(promotionCodeId ? { promotion_code_id: promotionCodeId } : {}),
+      },
     });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice | null;

@@ -36,6 +36,7 @@ const NAV: NavSection[] = [
       { label: 'Dashboard', href: '/admin' },
       { label: 'Revenue', href: '/admin/revenue', pillKey: 'mrr' },
       { label: 'Subscriptions', href: '/admin/subscriptions' },
+      { label: 'Promo Codes', href: '/admin/promo-codes' },
       { label: 'Cohorts', href: '/admin/cohorts' },
       { label: 'Funnel', href: '/admin/funnel' },
     ],
@@ -156,6 +157,11 @@ function SideIcon({ name }: { name: string }) {
     Subscriptions: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="14" height="10" rx="2" /><path d="M1 7h14" /><path d="M4 10h3" />
+      </svg>
+    ),
+    'Promo Codes': (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1.5 7.5L7.5 1.5h7v7l-6 6L1.5 7.5z" /><circle cx="11" cy="5" r="1" fill="currentColor" />
       </svg>
     ),
     'Blog & Guides': (
