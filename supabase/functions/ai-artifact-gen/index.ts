@@ -9,6 +9,15 @@ import { callAI } from '../_shared/deepseek.ts';
 import { checkQuota, incrementQuota } from '../_shared/quota-check.ts';
 import { jsonResponse, errorResponse, corsResponse, limitExceededResponse } from '../_shared/response.ts';
 import { logProductEvent } from '../_shared/log-event.ts';
+import {
+  buildLedgerPrompt,
+  validateLedger,
+  ledgerContextBlock,
+  runDeterministicChecks,
+  buildAuditorPrompt,
+  parseAuditReport,
+  type DecisionLedger,
+} from '../_shared/decision-ledger.ts';
 
 // All user-facing artifacts use Flash (Pro reserved for admin only)
 const MODEL_MAP: Record<string, 'deepseek-v4-flash'> = {
@@ -105,8 +114,81 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ============================================================
+    // Decision Ledger — single source of truth for all artifacts.
+    // Generated once per project, cached on projects.metadata.
+    // Subsequent generations (e.g. single-artifact regen) reuse it.
+    // ============================================================
+    const { data: projectFull } = await admin
+      .from('projects')
+      .select('metadata')
+      .eq('id', projectId)
+      .single();
+
+    const cachedLedger = (projectFull?.metadata as { decision_ledger?: DecisionLedger } | null)
+      ?.decision_ledger;
+    let ledger: DecisionLedger | null = cachedLedger ?? null;
+
+    if (!ledger) {
+      const ledgerResult = await callAI({
+        model: 'deepseek-v4-flash',
+        eventType: 'artifact_generation',
+        userId: user.id,
+        projectId,
+        messages: [
+          { role: 'system', content: buildLedgerPrompt(archetypeSlug, project.name, discoverySummary) },
+          { role: 'user', content: 'Output the Decision Ledger JSON.' },
+        ],
+        maxTokens: 2000,
+        temperature: 0.2,
+        jsonMode: true,
+      });
+
+      let parsed: unknown = null;
+      try { parsed = JSON.parse(ledgerResult.content); } catch { /* handled below */ }
+      const { ledger: validated, errors } = validateLedger(parsed);
+      if (!validated) {
+        // One retry with errors fed back.
+        const retry = await callAI({
+          model: 'deepseek-v4-flash',
+          eventType: 'artifact_generation',
+          userId: user.id,
+          projectId,
+          messages: [
+            { role: 'system', content: buildLedgerPrompt(archetypeSlug, project.name, discoverySummary) },
+            { role: 'user', content: `Your previous Decision Ledger had these issues: ${errors.join('; ')}. Fix and re-emit the JSON.` },
+          ],
+          maxTokens: 2000,
+          temperature: 0.2,
+          jsonMode: true,
+        });
+        try { parsed = JSON.parse(retry.content); } catch { parsed = null; }
+        const second = validateLedger(parsed);
+        if (!second.ledger) {
+          console.error('Decision Ledger validation failed twice:', second.errors);
+          return errorResponse('Could not build a consistent project plan. Please refine discovery answers and try again.', 500);
+        }
+        ledger = second.ledger;
+      } else {
+        ledger = validated;
+      }
+
+      // Cache on the project so single-artifact regens hit the same ledger.
+      const existingMeta = (projectFull?.metadata as Record<string, unknown> | null) ?? {};
+      await admin
+        .from('projects')
+        .update({ metadata: { ...existingMeta, decision_ledger: ledger } })
+        .eq('id', projectId);
+    }
+
+    // Narrow for downstream code — every branch above either assigns a ledger or returns.
+    if (!ledger) {
+      return errorResponse('Decision Ledger unavailable.', 500);
+    }
+    const ledgerBlock = ledgerContextBlock(ledger);
+
     // Process artifacts sequentially in order
-    const results: Array<{ type: string; status: string; error?: string }> = [];
+    const results: Array<{ type: string; status: string; error?: string; violations?: string[] }> = [];
 
     for (const artifactType of typesToGenerate) {
       try {
@@ -158,32 +240,58 @@ Deno.serve(async (req) => {
           .eq('status', 'ready')
           .neq('type', artifactType);
 
-        // Build the generation prompt
+        // Build the generation prompt (ledger block injected as authoritative context)
         const systemPrompt = buildArtifactPrompt(
           artifactType,
           archetypeSlug,
           project.name,
           discoverySummary,
           existingArtifacts || [],
+          ledgerBlock,
         );
 
-        // Call DeepSeek
+        // Call DeepSeek — with one consistency-retry if deterministic checks flag the output.
         const model = MODEL_MAP[artifactType] || 'deepseek-v4-flash';
-        const aiResult = await callAI({
+        const userMessage = `Generate the ${artifactType.replace('_', ' ')} artifact for this project.`;
+
+        let aiResult = await callAI({
           model,
           eventType: 'artifact_generation',
           userId: user.id,
           projectId,
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Generate the ${artifactType.replace('_', ' ')} artifact for this project.` },
+            { role: 'user', content: userMessage },
           ],
           maxTokens: 4000,
           temperature: 0.4,
         });
 
-        // Extract markdown content
-        const contentMarkdown = aiResult.content;
+        let contentMarkdown = aiResult.content;
+        let violations = runDeterministicChecks(artifactType, contentMarkdown, ledger).violations;
+
+        if (violations.length > 0) {
+          // One retry with violations spelled out.
+          aiResult = await callAI({
+            model,
+            eventType: 'artifact_generation',
+            userId: user.id,
+            projectId,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage },
+              { role: 'assistant', content: contentMarkdown },
+              {
+                role: 'user',
+                content: `Your draft has these consistency violations against the Decision Ledger:\n- ${violations.join('\n- ')}\n\nRewrite the artifact so every price, tool, provider, and number comes from the ledger. Do not introduce new ones.`,
+              },
+            ],
+            maxTokens: 4000,
+            temperature: 0.3,
+          });
+          contentMarkdown = aiResult.content;
+          violations = runDeterministicChecks(artifactType, contentMarkdown, ledger).violations;
+        }
 
         // Try to extract JSON if the artifact is structured
         let contentJson = null;
@@ -250,7 +358,11 @@ Deno.serve(async (req) => {
         // Increment artifact quota
         await incrementQuota(user.id, 'artifacts_generated');
 
-        results.push({ type: artifactType, status: 'ready' });
+        results.push({
+          type: artifactType,
+          status: 'ready',
+          ...(violations.length > 0 ? { violations } : {}),
+        });
       } catch (err) {
         console.error(`Failed to generate ${artifactType}:`, err);
 
@@ -285,6 +397,65 @@ Deno.serve(async (req) => {
       })
       .eq('id', projectId);
 
+    // ============================================================
+    // LLM auditor — final consistency pass, scoped to the fields
+    // that historically conflict (pricing, tech_stack, providers,
+    // budget, timeline, positioning). Runs only when the full plan
+    // was generated (skip on single-artifact regen, where there's
+    // nothing to cross-check against).
+    // ============================================================
+    let auditReport: { conflicts: Array<{ field: string; sections: string[]; description: string }> } = { conflicts: [] };
+    if (!regenerateType && readyCount >= 3 && ledger) {
+      try {
+        const { data: artifactsForAudit } = await admin
+          .from('artifacts')
+          .select('type, content_markdown')
+          .eq('project_id', projectId)
+          .eq('is_current', true)
+          .eq('status', 'ready');
+
+        const corpus = (artifactsForAudit ?? [])
+          .filter((a: { content_markdown?: string }) => typeof a.content_markdown === 'string')
+          .map((a: any) => ({ type: a.type as string, content_markdown: a.content_markdown as string }));
+
+        if (corpus.length > 0) {
+          const auditResult = await callAI({
+            model: 'deepseek-v4-flash',
+            eventType: 'artifact_generation',
+            userId: user.id,
+            projectId,
+            messages: [
+              { role: 'system', content: buildAuditorPrompt(ledger, corpus) },
+              { role: 'user', content: 'Return the conflicts JSON.' },
+            ],
+            maxTokens: 2000,
+            temperature: 0.1,
+            jsonMode: true,
+          });
+          auditReport = parseAuditReport(auditResult.content);
+
+          // Surface conflicts on the project so the UI can show them; do not block.
+          const existingMeta = (projectFull?.metadata as Record<string, unknown> | null) ?? {};
+          await admin
+            .from('projects')
+            .update({
+              metadata: {
+                ...existingMeta,
+                decision_ledger: ledger,
+                last_audit: {
+                  ran_at: new Date().toISOString(),
+                  conflict_count: auditReport.conflicts.length,
+                  conflicts: auditReport.conflicts,
+                },
+              },
+            })
+            .eq('id', projectId);
+        }
+      } catch (err) {
+        console.error('Auditor pass failed (non-blocking):', err);
+      }
+    }
+
     // Log product event
     await logProductEvent({
       userId: user.id,
@@ -295,6 +466,7 @@ Deno.serve(async (req) => {
         artifacts_requested: totalCount,
         artifacts_completed: readyCount,
         artifacts_failed: totalCount - readyCount,
+        audit_conflict_count: auditReport.conflicts.length,
       },
     });
 
@@ -302,6 +474,7 @@ Deno.serve(async (req) => {
       results,
       completedCount: readyCount,
       totalCount,
+      auditConflicts: auditReport.conflicts,
     });
   } catch (err) {
     if (err instanceof AuthError) {
@@ -322,6 +495,7 @@ function buildArtifactPrompt(
   projectName: string,
   discoverySummary: string,
   existingArtifacts: Array<{ type: string; content_markdown: string }>,
+  ledgerBlock: string,
 ): string {
   const existingBlock = existingArtifacts.length > 0
     ? `\n\n=== EXISTING ARTIFACTS (reference for consistency) ===\n${existingArtifacts
@@ -486,6 +660,8 @@ Standard deck order: Title, Problem, Solution, Market Size, Business Model, Trac
 === PROJECT: ${projectName} ===
 === ARCHETYPE: ${archetypeSlug.replace('_', ' ')} ===
 
+${ledgerBlock}
+
 === DISCOVERY ANSWERS ===
 ${discoverySummary}
 ${existingBlock}
@@ -495,9 +671,10 @@ ${artifactPrompt}
 
 === RULES ===
 - Output markdown only. Use ## for section headers.
+- Every price, tool, provider, named choice, and number must come from the Decision Ledger above. Do not introduce new ones. If a section seems to need a value the ledger doesn't have, elaborate qualitatively rather than inventing a specific.
 - Be specific to THIS project. Reference the user's actual answers.
 - Do not use these phrases: delve, leverage, robust, cutting-edge, seamless, navigate, harness, unlock, game-changer, paradigm, synergy, holistic.
 - No emojis.
 - No fluff or filler. Every sentence should contain useful information.
-- If something seems unrealistic based on the answers, note it.`;
+- If a flagged risk in the ledger applies to this section (e.g. cold-email provider restrictions when writing the tech stack), acknowledge it explicitly rather than pretending it isn't there.`;
 }

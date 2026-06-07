@@ -30,6 +30,9 @@ interface CallOptions {
   userId?: string;
   projectId?: string;
   eventType: AiEventType;
+  // When true, requests structured JSON output from the model.
+  // DeepSeek is OpenAI-compatible and honors response_format json_object.
+  jsonMode?: boolean;
 }
 
 interface CallResult {
@@ -91,6 +94,7 @@ export async function callAI(opts: CallOptions): Promise<CallResult> {
       stream: false,
       max_tokens: opts.maxTokens ?? 32000,
       temperature: opts.temperature ?? 0.4,
+      ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
     });
 
     const latencyMs = Date.now() - start;
