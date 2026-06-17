@@ -4,7 +4,11 @@
 // ============================================================
 
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-8FLRB8EW05';
+const GA_ENABLED = process.env.NODE_ENV === 'production';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -87,6 +91,22 @@ export default function RootLayout({
         />
       </head>
       <body>{children}</body>
+      {GA_ENABLED && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `}
+          </Script>
+        </>
+      )}
     </html>
   );
 }
