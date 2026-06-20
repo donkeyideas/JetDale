@@ -1074,6 +1074,7 @@ export const indieSoftware: ArchetypeDefinition = {
     },
   ],
   artifactTypes: [
+    'demand_analysis',
     'vision',
     'scope',
     'personas',
@@ -1093,6 +1094,7 @@ export const indieSoftware: ArchetypeDefinition = {
     'pitch_deck',
   ],
   artifactGenerationOrder: [
+    'demand_analysis',
     'vision',
     'personas',
     'competitive_analysis',

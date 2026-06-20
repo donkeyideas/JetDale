@@ -426,7 +426,7 @@ export function runDeterministicChecks(
 // ============================================================
 
 export interface AuditConflict {
-  field: 'pricing' | 'tech_stack' | 'providers' | 'budget' | 'timeline' | 'positioning';
+  field: 'pricing' | 'tech_stack' | 'providers' | 'budget' | 'timeline' | 'positioning' | 'demand';
   sections: string[];
   description: string;
 }
@@ -460,17 +460,20 @@ Audit ONLY these high-conflict fields:
 - budget (totals, line items)
 - timeline (ship date, phase durations)
 - positioning (the one-line differentiator)
+- demand (the demand_analysis verdict's relationship to the rest of the plan)
 
 Flag every case of:
 (a) An artifact stating a value that disagrees with the ledger.
 (b) Two artifacts stating different values for the same field.
 (c) Budget line items in any artifact that don't sum to the budget total.
 (d) Two mutually exclusive approaches presented as coexisting.
+(e) demand: the demand_analysis verdict is WEAK or MODERATE but the budget or roadmap commits substantial spend or time before any validation experiment runs. Or the verdict is STRONG/EXTREME but the timeline is slow enough that competitors win.
+(f) demand: any artifact (vision, pitch_deck, go_to_market) makes a market-size or buyer-willingness claim that contradicts the demand_analysis dimensions table.
 
 Return ONLY this JSON shape (no prose, no code fence):
 {
   "conflicts": [
-    { "field": "pricing | tech_stack | providers | budget | timeline | positioning",
+    { "field": "pricing | tech_stack | providers | budget | timeline | positioning | demand",
       "sections": ["vision", "scope"],
       "description": "Concise statement of the contradiction." }
   ]

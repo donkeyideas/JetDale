@@ -985,6 +985,7 @@ export const homeRenovation: ArchetypeDefinition = {
     },
   ],
   artifactTypes: [
+    'demand_analysis',
     'vision',
     'scope',
     'personas',
@@ -1001,6 +1002,7 @@ export const homeRenovation: ArchetypeDefinition = {
     'pitch_deck',
   ],
   artifactGenerationOrder: [
+    'demand_analysis',
     'vision',
     'scope',
     'personas',

@@ -15,6 +15,12 @@ import { loadProjectMerged, syncArtifactToSupabase, syncChatMessageToSupabase, s
 import { markdownToHtml } from '@/lib/markdown';
 import type { ChatMessage } from '@jetdale/shared';
 
+// demand_analysis is the gate — pinned to the top of the sidebar with
+// distinct styling. It is generated first by the artifact pipeline and
+// surfaces the verdict (EXTREME/STRONG/MODERATE/WEAK) that anchors the
+// rest of the plan. Kept out of ARTIFACT_ORDER so it isn't rendered twice.
+const VALIDATION_ARTIFACTS = ['demand_analysis'] as const;
+
 const ARTIFACT_ORDER = [
   'vision', 'scope', 'personas', 'competitive_analysis', 'user_journey',
   'roadmap', 'tech_stack', 'architecture_overview', 'wireframes',
@@ -44,6 +50,7 @@ function stripMarkdown(md: string): string {
 }
 
 const ARTIFACT_LABELS: Record<string, string> = {
+  demand_analysis: 'Demand',
   vision: 'Vision', scope: 'Scope', personas: 'Personas',
   competitive_analysis: 'Competitive Analysis', user_journey: 'User Journey',
   roadmap: 'Roadmap', tech_stack: 'Tech stack', architecture_overview: 'Architecture',
@@ -55,6 +62,7 @@ const ARTIFACT_LABELS: Record<string, string> = {
 
 // Plain-language explanation of what each artifact is, shown at the top of the viewer.
 const ARTIFACT_DESCRIPTIONS: Record<string, string> = {
+  demand_analysis: 'The gate. Honest verdict on whether real demand exists — with a composite score, kill-shot questions that would prove the idea wrong, and 3-5 cheap experiments you can run this week to test demand before you build.',
   vision: 'The big-picture statement of what you are building, who it is for, and why it matters.',
   scope: 'What is in and out of the first version — the features you will build and the ones you will skip.',
   personas: 'Profiles of your target users — their goals, frustrations, and what would make them choose your product.',
@@ -484,7 +492,7 @@ function WorkspaceContent() {
   // ---- Export to Claude Code: compile all artifacts into clean plain text ----
   function handleExport() {
     if (!project) return;
-    const sections = [...ARTIFACT_ORDER, ...TOOL_ARTIFACTS]
+    const sections = [...VALIDATION_ARTIFACTS, ...ARTIFACT_ORDER, ...TOOL_ARTIFACTS]
       .filter((t) => project.artifacts[t]?.status === 'ready')
       .map((t) => {
         const label = ARTIFACT_LABELS[t].toUpperCase();
@@ -883,7 +891,50 @@ function WorkspaceContent() {
 
         {/* LEFT: Artifact sidebar */}
         <aside className="ws-pane ws-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.15em', textTransform: 'uppercase', color: 'var(--muted)', padding: '12px 12px 8px' }}>Artifacts</div>
+          {/* Validation gate — pinned to top, distinct styling */}
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.15em', textTransform: 'uppercase', color: 'var(--muted)', padding: '12px 12px 8px' }}>Validation</div>
+          {VALIDATION_ARTIFACTS.map((type) => {
+            const data = project.artifacts[type];
+            const isActive = activeArtifact === type;
+            const isReady = data?.status === 'ready';
+            return (
+              <button
+                key={type}
+                onClick={() => { setActiveArtifact(type); setEditing(false); }}
+                style={{
+                  padding: '14px 14px', borderRadius: 8, fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  cursor: 'pointer', fontWeight: 700, border: '1.5px solid var(--accent)',
+                  width: '100%', textAlign: 'left', position: 'relative',
+                  background: isActive ? 'var(--accent)' : 'rgba(255,91,31,.06)',
+                  color: isActive ? '#fff' : 'var(--ink)',
+                  transition: 'background .15s',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontFamily: "'Space Mono', monospace", fontSize: 8, fontWeight: 700,
+                    letterSpacing: '.15em', padding: '2px 6px', borderRadius: 999,
+                    background: isActive ? 'rgba(255,255,255,.2)' : 'var(--accent)',
+                    color: '#fff',
+                  }}>GATE</span>
+                  {ARTIFACT_LABELS[type]}
+                </span>
+                {isReady && (
+                  <span style={{
+                    fontFamily: "'Space Mono', monospace", fontSize: 10,
+                    background: isActive ? 'rgba(255,255,255,.25)' : 'var(--accent)',
+                    padding: '2px 8px', borderRadius: 999,
+                    color: '#fff', fontWeight: 400,
+                  }}>v{data.version}</span>
+                )}
+                {data?.status === 'failed' && (
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-2)' }} />
+                )}
+              </button>
+            );
+          })}
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.15em', textTransform: 'uppercase', color: 'var(--muted)', padding: '20px 12px 8px' }}>Artifacts</div>
           {ARTIFACT_ORDER.map((type) => {
             const data = project.artifacts[type];
             const isActive = activeArtifact === type;

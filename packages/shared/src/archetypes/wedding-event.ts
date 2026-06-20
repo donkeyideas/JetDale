@@ -460,6 +460,7 @@ export const weddingEvent: ArchetypeDefinition = {
     },
   ],
   artifactTypes: [
+    'demand_analysis',
     'vision',
     'scope',
     'personas',
@@ -476,6 +477,7 @@ export const weddingEvent: ArchetypeDefinition = {
     'pitch_deck',
   ],
   artifactGenerationOrder: [
+    'demand_analysis',
     'vision',
     'personas',
     'competitive_analysis',

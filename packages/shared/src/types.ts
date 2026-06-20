@@ -39,6 +39,7 @@ export const DISCOVERY_STATUSES = [
 export type DiscoveryStatus = (typeof DISCOVERY_STATUSES)[number];
 
 export const ARTIFACT_TYPES = [
+  'demand_analysis',
   'vision',
   'scope',
   'personas',

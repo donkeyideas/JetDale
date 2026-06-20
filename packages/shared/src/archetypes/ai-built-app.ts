@@ -890,6 +890,7 @@ export const aiBuiltApp: ArchetypeDefinition = {
     },
   ],
   artifactTypes: [
+    'demand_analysis',
     'vision',
     'scope',
     'personas',
@@ -909,6 +910,7 @@ export const aiBuiltApp: ArchetypeDefinition = {
     'pitch_deck',
   ],
   artifactGenerationOrder: [
+    'demand_analysis',
     'vision',
     'personas',
     'competitive_analysis',
