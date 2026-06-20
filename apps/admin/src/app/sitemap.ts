@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createSupabaseAdminClient } from '@/lib/supabase-server';
+import { SAMPLE_PROJECTS } from '@/lib/sample-projects';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://jetdale.com';
 
@@ -16,6 +17,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/privacy`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/terms`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
   ];
+
+  // Public sample projects (read-only showcase pages). Sourced from the
+  // hard-coded slug map so unlisted projects can't be discovered.
+  const sampleEntries: MetadataRoute.Sitemap = Object.keys(SAMPLE_PROJECTS).map((slug) => ({
+    url: `${SITE_URL}/sample/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
 
   // Dynamic blog posts
   let blogEntries: MetadataRoute.Sitemap = [];
@@ -39,5 +49,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Silently fail — sitemap will still have static pages
   }
 
-  return [...staticPages, ...blogEntries];
+  return [...staticPages, ...sampleEntries, ...blogEntries];
 }
