@@ -28,6 +28,7 @@ export { buildRealityCheckPrompt } from './reality-check';
 export { buildWorkspaceChatPrompt } from './chat-workspace';
 
 // Artifact generation prompts
+export { buildDemandAnalysisPrompt } from './artifact/demand-analysis';
 export { buildVisionPrompt } from './artifact/vision';
 export { buildScopePrompt } from './artifact/scope';
 export { buildPersonasPrompt } from './artifact/personas';

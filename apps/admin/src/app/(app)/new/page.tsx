@@ -339,7 +339,7 @@ export default function NewProjectPage() {
             </div>
           </div>
           <p style={{ fontSize: 16, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 36 }}>
-            Here&apos;s a summary of your project. Next step: Jetdale generates 17 planning documents &mdash; vision, scope, personas, competitive analysis, roadmap, tech stack, architecture, and more.
+            Here&apos;s a summary of your project. Next step: Jetdale generates 18 planning documents starting with a demand-validation gate &mdash; demand, vision, scope, personas, competitive analysis, roadmap, tech stack, architecture, and more.
           </p>
 
           {/* Answer summary */}

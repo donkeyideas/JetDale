@@ -14,6 +14,7 @@ import {
   isStaff,
 } from '@/lib/quota';
 import {
+  buildDemandAnalysisPrompt,
   buildVisionPrompt,
   buildScopePrompt,
   buildPersonasPrompt,
@@ -41,6 +42,7 @@ interface ArtifactPromptOpts {
 }
 
 const PROMPT_BUILDERS: Record<string, (opts: ArtifactPromptOpts) => string> = {
+  demand_analysis: buildDemandAnalysisPrompt,
   vision: buildVisionPrompt,
   scope: buildScopePrompt,
   personas: buildPersonasPrompt,
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
       if (!quota.allowed) {
         return NextResponse.json(
           {
-            error: `You've reached your ${tier} plan limit of ${quota.max} planning documents this month. Upgrade to generate all 17.`,
+            error: `You've reached your ${tier} plan limit of ${quota.max} planning documents this month. Upgrade to generate all 18.`,
             code: 'quota_exceeded',
           },
           { status: 402 },

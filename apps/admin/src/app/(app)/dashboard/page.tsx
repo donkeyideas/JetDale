@@ -173,7 +173,7 @@ export default function DashboardPage() {
           letterSpacing: '-.03em', marginBottom: 12,
         }}>No projects yet</h2>
         <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 32 }}>
-          Start your first project and Jetdale will generate 17 planning documents from your answers.
+          Start your first project and Jetdale will generate 18 planning documents from your answers — starting with a demand-validation gate.
         </p>
         <Link href="/new" style={{
           display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--ink)',
@@ -312,7 +312,7 @@ export default function DashboardPage() {
 
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                 <strong style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--ink)', display: 'block', marginBottom: 4, fontWeight: 500 }}>Artifacts</strong>
-                {Object.values(p.artifacts).filter((a) => a.status === 'ready').length} of 17 ready
+                {Object.values(p.artifacts).filter((a) => a.status === 'ready').length} of 18 ready
               </div>
 
               {/* Kebab menu — actions outside the navigation click target */}

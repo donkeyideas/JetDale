@@ -168,7 +168,7 @@ export default function HomePage() {
             <div className={s.step}>
               <div className={s.stepNum}>STEP 04</div>
               <div className={s.stepTitle}>Artifact suite</div>
-              <div className={s.stepMeta}><span>17 documents</span><span>2-3 min</span></div>
+              <div className={s.stepMeta}><span>18 documents</span><span>2-3 min</span></div>
             </div>
             <div className={s.step}>
               <div className={s.stepNum}>STEP 05</div>

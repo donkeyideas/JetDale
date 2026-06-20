@@ -13,8 +13,10 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { loadProjectMerged, syncProjectToSupabase, syncArtifactToSupabase } from '@/lib/supabase-storage';
 import type { JetdaleProject, ArtifactData } from '@/lib/storage';
 
-// Generation order — vision first so later artifacts can reference it
+// Generation order — demand_analysis runs first (and alone) so its verdict
+// can anchor every downstream artifact (budget, roadmap, pitch).
 const GENERATION_ORDER = [
+  'demand_analysis',
   'vision', 'personas', 'competitive_analysis', 'scope', 'user_journey',
   'tech_stack', 'architecture_overview', 'wireframes', 'roadmap', 'raci_matrix',
   'success_metrics', 'budget', 'go_to_market', 'risk_register',
@@ -22,9 +24,14 @@ const GENERATION_ORDER = [
 ] as const;
 
 // Documents generate in waves: each wave runs in parallel, and later waves
-// receive earlier waves' output as context. ~3-4x faster than 17 sequential
+// receive earlier waves' output as context. ~3-4x faster than 18 sequential
 // calls while keeping cross-document coherence.
+//
+// Wave 0 is demand_analysis alone — the verdict is load-bearing context
+// for everything that follows (budget sized for verdict, roadmap cuts
+// match verdict, pitch deck framing matches verdict).
 const GENERATION_WAVES: string[][] = [
+  ['demand_analysis'],
   ['vision', 'personas', 'competitive_analysis', 'scope'],
   ['user_journey', 'tech_stack', 'architecture_overview', 'wireframes'],
   ['roadmap', 'raci_matrix', 'success_metrics', 'budget'],
@@ -32,6 +39,7 @@ const GENERATION_WAVES: string[][] = [
 ];
 
 const ARTIFACT_LABELS: Record<string, string> = {
+  demand_analysis: 'Demand',
   vision: 'Vision', personas: 'Personas', competitive_analysis: 'Competitive Analysis',
   scope: 'Scope', user_journey: 'User Journey', tech_stack: 'Tech Stack',
   architecture_overview: 'Architecture', wireframes: 'Wireframes', roadmap: 'Roadmap',
@@ -220,8 +228,8 @@ function GenerateContent() {
       </h1>
       <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 32 }}>
         {done
-          ? 'All 17 planning documents have been generated. Head to your workspace to review and refine.'
-          : 'Jetdale is generating 17 planning documents from your discovery answers — this usually takes under a minute.'}
+          ? 'All 18 planning documents have been generated. Head to your workspace to review and refine.'
+          : 'Jetdale is generating 18 planning documents from your discovery answers — this usually takes under a minute.'}
       </p>
 
       {/* Progress bar */}

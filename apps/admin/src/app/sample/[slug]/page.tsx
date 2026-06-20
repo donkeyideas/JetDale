@@ -188,7 +188,7 @@ export default async function SampleProjectPage({
             This was a sample. Build yours next.
           </h2>
           <p style={{ fontSize: 16, color: 'var(--paper-3)', lineHeight: 1.55, marginBottom: 32 }}>
-            One-sentence idea in. 17 planning documents out. Reality-checked, build-ready, exportable to Claude Code, Cursor, or Lovable in one click.
+            One-sentence idea in. 18 planning documents out, starting with an honest demand-validation gate. Reality-checked, build-ready, exportable to Claude Code, Cursor, or Lovable in one click.
           </p>
           <Link href="/start" style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,

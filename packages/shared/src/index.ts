@@ -27,6 +27,7 @@ export {
   DISCOVERY_OVERLAYS,
   buildRealityCheckPrompt,
   buildWorkspaceChatPrompt,
+  buildDemandAnalysisPrompt,
   buildVisionPrompt,
   buildScopePrompt,
   buildPersonasPrompt,
